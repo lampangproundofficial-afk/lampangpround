@@ -275,6 +275,7 @@ async function main() {
     const found = data.find((r) => r.BackendId === savedBackendId);
     assert(found, 'record appears in list');
     eq(found.BusinessName, 'ร้านทดสอบ A', 'list field parity');
+    assert(typeof found.CreatedAt === 'string' && found.CreatedAt.length > 0, 'CreatedAt remains formatted');
   });
 
   await test('saveRecord สินค้ามีรูป → gallery ผูก ProductID ตรงตัว (แถวสินค้าดึงรูปตัวเอง)', async () => {
