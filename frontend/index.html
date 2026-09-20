@@ -1377,15 +1377,15 @@
         </div>
 
         <!-- Desktop Table View -->
-        <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
-          <table class="w-full text-left border-collapse">
+        <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 overflow-x-auto shadow-sm">
+          <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                 <th class="py-3 px-4">ผู้ใช้</th>
                 <th class="py-3 px-4">อีเมล</th>
                 <th class="py-3 px-4">สิทธิ์การใช้งาน</th>
-                <th class="py-3 px-4">วันที่สมัคร</th>
-                <th class="py-3 px-4 text-right">จัดการ</th>
+                <th class="py-3 px-4 whitespace-nowrap">วันที่สมัคร</th>
+                <th class="py-3 px-4 text-right w-48 min-w-[190px]">จัดการ</th>
               </tr>
             </thead>
             <tbody id="admin-table-body" class="divide-y divide-slate-100 text-xs">

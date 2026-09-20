@@ -232,22 +232,31 @@ export function renderAdminUsers() {
                 <div>${formatDateThai(u.created_at)}</div>
                 <div class="text-[11px] text-slate-400">เข้าสู่ระบบ: ${formatDateThai(u.last_login_at)}</div>
               </td>
-              <td class="py-3.5 px-4 text-right">
+              <td class="py-3.5 px-4 text-right whitespace-nowrap">
                 ${
                   isMe
                     ? '<span class="text-xs text-slate-300 italic">บัญชีปัจจุบัน</span>'
                     : isPendingDel
                     ? `
-                      <div class="inline-flex items-center gap-1.5 p-1.5 bg-rose-50 rounded-lg border border-rose-200 animate-fadeIn">
-                        <span class="text-xs text-rose-700 font-medium">ยืนยันลบ?</span>
-                        <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" class="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded font-medium transition-colors">ลบ</button>
-                        <button onclick="window.adminCancelDelete()" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs rounded font-medium transition-colors">ยกเลิก</button>
+                      <div class="inline-flex items-center justify-end gap-1.5 p-1 bg-rose-50 border border-rose-200 rounded-xl shadow-xs animate-fadeIn">
+                        <span class="text-[11px] font-semibold text-rose-700 pl-2 pr-0.5 select-none">ยืนยันลบ?</span>
+                        <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" 
+                                class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1 active:scale-95"
+                                title="ยืนยันการลบบัญชี">
+                          ลบ
+                        </button>
+                        <button onclick="window.adminCancelDelete()" 
+                                class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 text-xs font-medium rounded-lg border border-slate-200 shadow-xs transition-colors active:scale-95"
+                                title="ยกเลิกการลบ">
+                          ยกเลิก
+                        </button>
                       </div>
                     `
                     : `
                       <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
-                              class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors inline-flex items-center justify-center"
-                              title="ลบบัญชีผู้ใช้">
+                              class="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                              title="ลบบัญชีผู้ใช้"
+                              aria-label="ลบบัญชี ${escapeHtml(u.username)}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                       </button>
                     `
@@ -314,7 +323,8 @@ export function renderAdminUsers() {
 
               <div class="pt-1 flex items-center justify-between gap-2">
                 <select onchange="window.adminChangeRole('${escapeHtml(u.username)}', this.value)"
-                        class="flex-1 text-xs rounded-lg border border-slate-200 px-2.5 py-2 bg-white text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 min-h-[44px]">
+                        class="flex-1 text-xs rounded-xl border border-slate-200 px-3 py-2 bg-white text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 min-h-[44px]"
+                        ${isMe ? 'disabled' : ''}>
                   <option value="user" ${u.role === 'user' ? 'selected' : ''}>👤 สิทธิ์: สมาชิก</option>
                   <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>⭐ สิทธิ์: ผู้ดูแลระบบ</option>
                 </select>
@@ -323,21 +333,41 @@ export function renderAdminUsers() {
                   isMe
                     ? '<span class="text-xs text-slate-300 italic px-2">คุณ</span>'
                     : isPendingDel
-                    ? `
-                      <div class="flex items-center gap-1.5 p-1 bg-rose-50 rounded-lg border border-rose-200">
-                        <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" class="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-md font-medium min-h-[44px]">ยืนยันลบ</button>
-                        <button onclick="window.adminCancelDelete()" class="px-2 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs rounded-md font-medium min-h-[44px]">ยกเลิก</button>
-                      </div>
-                    `
+                    ? ''
                     : `
                       <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
-                              class="px-3 py-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 min-h-[44px] transition-colors">
+                              class="px-3.5 py-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] shrink-0 transition-colors active:scale-95"
+                              title="ลบบัญชี">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        ลบ
+                        <span>ลบ</span>
                       </button>
                     `
                 }
               </div>
+
+              ${
+                !isMe && isPendingDel
+                  ? `
+                    <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-2 animate-fadeIn">
+                      <div class="flex items-center gap-1.5 text-xs text-rose-700 font-semibold">
+                        <svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <span>ยืนยันการลบบัญชี @${escapeHtml(u.username)}?</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-2 pt-0.5">
+                        <button onclick="window.adminCancelDelete()" 
+                                class="w-full py-2.5 px-3 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-xl border border-slate-200 shadow-xs flex items-center justify-center min-h-[44px] transition-colors active:scale-95">
+                          ยกเลิก
+                        </button>
+                        <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" 
+                                class="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-colors active:scale-95">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          ยืนยันลบ
+                        </button>
+                      </div>
+                    </div>
+                  `
+                  : ''
+              }
             </div>
           `;
         })
