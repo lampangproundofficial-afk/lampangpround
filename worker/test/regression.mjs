@@ -534,6 +534,58 @@ async function main() {
     eq(data.success, true, 'admin edits any shop');
   });
 
+  // ---- Admin User Management Suite ----
+  await test('adminListUsers: user ทั่วไป → ปฏิเสธ', async () => {
+    const { data } = await rpc('adminListUsers', { token: ownerToken });
+    eq(data.success, false, 'success=false');
+    assert(data.message.includes('ผู้ดูแลระบบ'), 'guard message');
+  });
+
+  await test('adminListUsers: admin → สำเร็จ ได้รายชื่อ', async () => {
+    const { data } = await rpc('adminListUsers', { token: otherToken });
+    eq(data.success, true, 'success=true');
+    assert(Array.isArray(data.users), 'users array');
+    assert(data.users.some(u => u.username === OTHER), 'contains admin user');
+  });
+
+  const tempUser = `tempuser_${runId}`;
+  await test('adminCreateUser: แอดมินสร้าง user สำเร็จ', async () => {
+    const { data } = await rpc('adminCreateUser', {
+      token: otherToken,
+      name: 'ผู้ใช้ทดสอบ',
+      username: tempUser,
+      email: `${tempUser}@test.com`,
+      password: 'testpassword123',
+      role: 'user',
+    });
+    eq(data.success, true, 'create user success');
+  });
+
+  await test('adminUpdateUserRole: แอดมินเปลี่ยน role สำเร็จ', async () => {
+    const { data } = await rpc('adminUpdateUserRole', {
+      token: otherToken,
+      username: tempUser,
+      role: 'admin',
+    });
+    eq(data.success, true, 'update role success');
+  });
+
+  await test('adminDeleteUser: แอดมินห้ามลบตนเอง → ปฏิเสธ', async () => {
+    const { data } = await rpc('adminDeleteUser', {
+      token: otherToken,
+      username: OTHER,
+    });
+    eq(data.success, false, 'cannot delete self');
+  });
+
+  await test('adminDeleteUser: แอดมินลบ user สำเร็จ', async () => {
+    const { data } = await rpc('adminDeleteUser', {
+      token: otherToken,
+      username: tempUser,
+    });
+    eq(data.success, true, 'delete user success');
+  });
+
   await test('resolveMapLocationUrl: พิกัดตรง → lat/lng', async () => {
     const { data } = await rpc('resolveMapLocationUrl', {
       url: 'https://maps.google.com/?q=18.2923,99.5078',

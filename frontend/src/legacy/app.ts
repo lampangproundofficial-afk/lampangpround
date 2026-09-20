@@ -448,9 +448,24 @@
       if (hn) hn.textContent = (_session.name || _session.username) || '';
       if (hr) hr.textContent = (role === 'admin') ? '\u2764\uFE0F ผู้ดูแลระบบ' : '\uD83D\uDC64 ผู้ใช้';
       if (ha) ha.textContent = ((_session.name || _session.username) || '?').charAt(0).toUpperCase();
+      var hAdmin = document.getElementById('header-btn-admin');
+      if (hAdmin) {
+        if (role === 'admin') {
+          hAdmin.classList.remove('hidden');
+          hAdmin.classList.add('inline-flex');
+        } else {
+          hAdmin.classList.add('hidden');
+          hAdmin.classList.remove('inline-flex');
+        }
+      }
     } else {
       if (hu) { hu.classList.add('hidden'); hu.classList.remove('flex'); }
       if (hLogin) hLogin.classList.remove('hidden');
+      var hAdminGuest = document.getElementById('header-btn-admin');
+      if (hAdminGuest) {
+        hAdminGuest.classList.add('hidden');
+        hAdminGuest.classList.remove('inline-flex');
+      }
     }
     syncGuestWarningBanner();
     if (window.lucide) lucide.createIcons();

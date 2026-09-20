@@ -210,7 +210,11 @@
           <p id="header-user-role" class="text-xs text-white/70"></p>
         </div>
         <div id="header-user-avatar" class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-sm font-bold shrink-0"></div>
-        <button onclick="doLogout()" class="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors" title="ออกจากระบบ">
+        <button id="header-btn-admin" onclick="openAdminUsersModal()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-all min-h-[44px]" title="จัดการผู้ใช้">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span class="hidden md:inline">จัดการผู้ใช้</span>
+        </button>
+        <button onclick="doLogout()" class="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" title="ออกจากระบบ">
           <i data-lucide="log-out" class="w-4 h-4"></i>
         </button>
       </div>
@@ -1260,6 +1264,156 @@
       </div>
     </div>
   </div>
+
+  <!-- Admin User Management Modal -->
+  <div id="modal-admin-users" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 opacity-0 pointer-events-none transition-opacity duration-300 ease-out backdrop-blur-[3px]">
+    <div id="modal-admin-users-content" class="bg-white w-full max-w-4xl max-h-[90vh] rounded-[1.75rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform scale-95 translate-y-4 transition-all duration-300 ease-out">
+      
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-blue-700 via-sky-500 to-cyan-500 text-white px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between shrink-0 shadow-sm relative z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-lg shadow-inner">
+            👥
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold leading-tight">จัดการผู้ใช้ (User Management)</h3>
+            <p class="text-xs text-white/80 mt-0.5">ดูรายชื่อ เปลี่ยนสิทธิ์ และจัดการบัญชีผู้ใช้ที่สมัครสมาชิก</p>
+          </div>
+        </div>
+        <button type="button" onclick="window.closeAdminUsersModal()" aria-label="ปิด" class="w-10 h-10 rounded-2xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors min-h-[44px] min-w-[44px]">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5 bg-slate-50/50">
+        
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+          <div class="bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <p class="text-[11px] sm:text-xs text-slate-500 font-medium">ผู้ใช้ทั้งหมด</p>
+            <p id="stat-total-users" class="text-xl sm:text-2xl font-bold text-slate-800 mt-1">0</p>
+          </div>
+          <div class="bg-white p-3 sm:p-4 rounded-2xl border border-blue-50 shadow-sm">
+            <p class="text-[11px] sm:text-xs text-blue-600 font-medium">สมาชิก (User)</p>
+            <p id="stat-regular-users" class="text-xl sm:text-2xl font-bold text-blue-600 mt-1">0</p>
+          </div>
+          <div class="bg-white p-3 sm:p-4 rounded-2xl border border-purple-50 shadow-sm">
+            <p class="text-[11px] sm:text-xs text-purple-600 font-medium">ผู้ดูแลระบบ (Admin)</p>
+            <p id="stat-admin-users" class="text-xl sm:text-2xl font-bold text-purple-600 mt-1">0</p>
+          </div>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <!-- Search & Filter Chips -->
+          <div class="flex flex-wrap items-center gap-2 flex-1">
+            <div class="relative flex-1 sm:max-w-xs min-w-[180px]">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </span>
+              <input type="text"
+                     id="admin-search-input"
+                     oninput="window.renderAdminUsers()"
+                     placeholder="ค้นหาชื่อ, username, อีเมล..."
+                     class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-full shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[44px]">
+            </div>
+            <div class="flex items-center gap-1.5 overflow-x-auto py-1">
+              <button data-filter="all" onclick="window.setAdminFilter('all')" class="admin-filter-chip px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm min-h-[36px]">ทั้งหมด</button>
+              <button data-filter="user" onclick="window.setAdminFilter('user')" class="admin-filter-chip px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-slate-100 hover:bg-slate-200 text-slate-600 min-h-[36px]">สมาชิก</button>
+              <button data-filter="admin" onclick="window.setAdminFilter('admin')" class="admin-filter-chip px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-slate-100 hover:bg-slate-200 text-slate-600 min-h-[36px]">แอดมิน</button>
+            </div>
+          </div>
+
+          <!-- Add User Button -->
+          <button id="btn-toggle-add-user"
+                  onclick="window.toggleAddUserForm()"
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 shrink-0 min-h-[44px]">
+            ➕ เพิ่มผู้ใช้ใหม่
+          </button>
+        </div>
+
+        <!-- Add User Slide Form (Hidden by default) -->
+        <div id="admin-add-user-form" class="hidden bg-white p-4 sm:p-5 rounded-2xl border border-blue-100 shadow-sm space-y-3 animate-fadeIn">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h4 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <span>👤</span> เพิ่มผู้ใช้ใหม่เข้าสู่ระบบ
+            </h4>
+            <button type="button" onclick="window.toggleAddUserForm(false)" class="text-xs text-slate-400 hover:text-slate-600">ปิด</button>
+          </div>
+          <form onsubmit="window.submitAddUser(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">ชื่อ-นามสกุล *</label>
+              <input type="text" id="add-user-name" required placeholder="เช่น สมชาย ใจดี" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 min-h-[44px]">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">ชื่อผู้ใช้ (Username) *</label>
+              <input type="text" id="add-user-username" required placeholder="เช่น somchai (ภาษาอังกฤษ/ตัวเลข)" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 min-h-[44px]">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">อีเมล</label>
+              <input type="email" id="add-user-email" placeholder="user@example.com" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 min-h-[44px]">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">รหัสผ่าน *</label>
+              <input type="password" id="add-user-password" required placeholder="รหัสผ่านอย่างน้อย 4 ตัวอักษร" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 min-h-[44px]">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">สิทธิ์การใช้งาน (Role)</label>
+              <select id="add-user-role" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white min-h-[44px]">
+                <option value="user">👤 สมาชิก (User)</option>
+                <option value="admin">⭐ ผู้ดูแลระบบ (Admin)</option>
+              </select>
+            </div>
+            <div class="flex items-end gap-2 pt-1 sm:pt-0">
+              <button type="submit" id="btn-submit-add-user" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition-colors min-h-[44px]">
+                บันทึกผู้ใช้
+              </button>
+              <button type="button" onclick="window.toggleAddUserForm(false)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs rounded-xl font-medium transition-colors min-h-[44px]">
+                ยกเลิก
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="hidden md:block bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-100 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                <th class="py-3 px-4">ผู้ใช้</th>
+                <th class="py-3 px-4">อีเมล</th>
+                <th class="py-3 px-4">สิทธิ์การใช้งาน</th>
+                <th class="py-3 px-4">วันที่สมัคร</th>
+                <th class="py-3 px-4 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body" class="divide-y divide-slate-100 text-xs">
+              <!-- Rendered by admin.ts -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card List View -->
+        <div id="admin-cards-list" class="block md:hidden space-y-3">
+          <!-- Rendered by admin.ts -->
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-white border-t border-slate-100 px-5 sm:px-6 py-3.5 flex items-center justify-between shrink-0">
+        <p class="text-[11px] text-slate-400">สิทธิ์ Admin สามารถแก้ไขสิทธิ์และลบผู้ใช้ได้ทันที</p>
+        <button type="button" onclick="window.closeAdminUsersModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors min-h-[44px]">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Admin Toast Notification -->
+  <div id="admin-toast" class="fixed bottom-6 right-6 z-[100] px-4 py-2.5 rounded-full text-xs font-semibold shadow-lg transition-all duration-300 opacity-0 translate-y-4 pointer-events-none"></div>
 
   <!-- Footer -->
   <footer class="w-full text-center py-3 mt-auto text-sm text-gray-400 relative z-20">

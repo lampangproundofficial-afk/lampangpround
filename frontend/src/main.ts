@@ -7,6 +7,8 @@ import './styles/tailwind.css';
 import './api';
 import './lucide-setup';
 import { installLegacyGlobals } from './legacy/app';
+import { installAdminGlobals } from './admin';
 import './legacy/bootstrap';
 
 installLegacyGlobals();
+installAdminGlobals();

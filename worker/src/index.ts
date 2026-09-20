@@ -23,6 +23,12 @@ import {
   handlePdfDownload,
   handleCleanupPdf,
 } from './routes/export';
+import {
+  handleAdminListUsers,
+  handleAdminUpdateUserRole,
+  handleAdminDeleteUser,
+  handleAdminCreateUser,
+} from './routes/admin';
 
 const SESSION_INVALID = {
   success: false,
@@ -51,6 +57,10 @@ const RPC: Record<string, (request: Request, env: Env) => Promise<Response>> = {
   getExcelExportUrl: handleExportExcel,
   cleanupTemporaryPdfFiles: handleCleanupPdf,
   resolveMapLocationUrl: handleResolveMapLocationUrl,
+  adminListUsers: handleAdminListUsers,
+  adminUpdateUserRole: handleAdminUpdateUserRole,
+  adminDeleteUser: handleAdminDeleteUser,
+  adminCreateUser: handleAdminCreateUser,
 };
 
 async function handleApi(request: Request, env: Env): Promise<Response> {
