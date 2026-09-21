@@ -18,6 +18,8 @@ let usersList: AdminUser[] = [];
 let currentFilter: 'all' | 'user' | 'admin' = 'all';
 let currentSearch = '';
 let pendingDeleteUser: string | null = null;
+let currentPage = 1;
+const PAGE_SIZE = 10;
 
 function getToken(): string | null {
   try {
@@ -89,9 +91,10 @@ export async function openAdminUsersModal() {
     content.classList.add('scale-100', 'translate-y-0');
   }
 
-  // รีเซ็ตสถานะฟอร์ม
+  // รีเซ็ตสถานะฟอร์มและการแบ่งหน้า
   toggleAddUserForm(false);
   pendingDeleteUser = null;
+  currentPage = 1;
   await fetchAdminUsers();
 }
 
@@ -135,6 +138,11 @@ export async function fetchAdminUsers() {
 function renderLoadingState() {
   const tbody = document.getElementById('admin-table-body');
   const cardList = document.getElementById('admin-cards-list');
+  const paginationEl = document.getElementById('admin-users-pagination');
+  if (paginationEl) {
+    paginationEl.classList.add('hidden');
+    paginationEl.innerHTML = '';
+  }
   const loadingHtml = `
     <div class="py-12 text-center text-slate-400">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mb-2"></div>
@@ -153,7 +161,11 @@ export function renderAdminUsers() {
   const tbody = document.getElementById('admin-table-body');
   const cardList = document.getElementById('admin-cards-list');
   const searchInput = document.getElementById('admin-search-input') as HTMLInputElement | null;
-  if (searchInput) currentSearch = searchInput.value.trim().toLowerCase();
+  const newSearch = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (newSearch !== currentSearch) {
+    currentSearch = newSearch;
+    currentPage = 1;
+  }
 
   const filtered = usersList.filter((u) => {
     const matchFilter =
@@ -182,6 +194,20 @@ export function renderAdminUsers() {
   if (elUsers) elUsers.textContent = String(userCount);
   if (elAdmins) elAdmins.textContent = String(adminCount);
 
+  // คำนวณแบ่งหน้า (Pagination)
+  const totalFiltered = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
+  }
+  if (currentPage < 1) {
+    currentPage = 1;
+  }
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, totalFiltered);
+  const pagedList = filtered.slice(startIndex, endIndex);
+
   // Desktop Table
   if (tbody) {
     if (filtered.length === 0) {
@@ -194,7 +220,7 @@ export function renderAdminUsers() {
         </tr>
       `;
     } else {
-      tbody.innerHTML = filtered
+      tbody.innerHTML = pagedList
         .map((u) => {
           const isMe =
             getStoredUser()?.username?.toLowerCase() === u.username.toLowerCase();
@@ -287,7 +313,7 @@ export function renderAdminUsers() {
         </div>
       `;
     } else {
-      cardList.innerHTML = filtered
+      cardList.innerHTML = pagedList
         .map((u) => {
           const isMe =
             getStoredUser()?.username?.toLowerCase() === u.username.toLowerCase();
@@ -391,10 +417,113 @@ export function renderAdminUsers() {
         .join('');
     }
   }
+
+  // เรนเดอร์ตัวแบ่งหน้า (Pagination Controls)
+  renderPaginationControls(totalFiltered, totalPages, startIndex, endIndex);
+}
+
+function renderPaginationControls(total: number, totalPages: number, start: number, end: number) {
+  const paginationEl = document.getElementById('admin-users-pagination');
+  if (!paginationEl) return;
+
+  if (total <= PAGE_SIZE) {
+    if (total === 0) {
+      paginationEl.classList.add('hidden');
+      paginationEl.innerHTML = '';
+      return;
+    }
+    paginationEl.classList.remove('hidden');
+    paginationEl.innerHTML = `
+      <div class="text-xs text-slate-500 font-medium">
+        แสดงทั้งหมด <span class="font-bold text-slate-700">${total}</span> คน
+      </div>
+      <div></div>
+    `;
+    return;
+  }
+
+  paginationEl.classList.remove('hidden');
+  const isFirstPage = currentPage <= 1;
+  const isLastPage = currentPage >= totalPages;
+
+  paginationEl.innerHTML = `
+    <div class="text-xs text-slate-500 font-medium text-center sm:text-left">
+      แสดง <span class="font-bold text-slate-700">${start + 1}</span> - <span class="font-bold text-slate-700">${end}</span> จากทั้งหมด <span class="font-bold text-slate-700">${total}</span> คน
+    </div>
+    <div class="flex items-center justify-center gap-2">
+      <button type="button"
+              onclick="window.adminPrevPage()"
+              ${isFirstPage ? 'disabled' : ''}
+              class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] ${
+                isFirstPage
+                  ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs active:scale-95 cursor-pointer'
+              }"
+              aria-label="หน้าก่อนหน้า">
+        <span>‹ ก่อนหน้า</span>
+      </button>
+
+      <span class="px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl select-none min-h-[44px] flex items-center justify-center">
+        หน้า ${currentPage} / ${totalPages}
+      </span>
+
+      <button type="button"
+              onclick="window.adminNextPage()"
+              ${isLastPage ? 'disabled' : ''}
+              class="px-3.5 py-2 text-xs font-semibold rounded-xl border transition-all flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] ${
+                isLastPage
+                  ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs active:scale-95 cursor-pointer'
+              }"
+              aria-label="หน้าถัดไป">
+        <span>ถัดไป ›</span>
+      </button>
+    </div>
+  `;
+}
+
+export function adminPrevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderAdminUsers();
+    scrollAdminToTop();
+  }
+}
+
+export function adminNextPage() {
+  const filteredCount = usersList.filter((u) => {
+    const matchFilter =
+      currentFilter === 'all' ||
+      (currentFilter === 'admin' && u.role === 'admin') ||
+      (currentFilter === 'user' && u.role === 'user');
+
+    const matchSearch =
+      !currentSearch ||
+      (u.name && u.name.toLowerCase().includes(currentSearch)) ||
+      (u.username && u.username.toLowerCase().includes(currentSearch)) ||
+      (u.email && u.email.toLowerCase().includes(currentSearch));
+
+    return matchFilter && matchSearch;
+  }).length;
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
+  if (currentPage < totalPages) {
+    currentPage++;
+    renderAdminUsers();
+    scrollAdminToTop();
+  }
+}
+
+function scrollAdminToTop() {
+  const modalBody = document.querySelector('#modal-admin-users .overflow-y-auto');
+  if (modalBody) {
+    modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
 export function setAdminFilter(role: 'all' | 'user' | 'admin') {
   currentFilter = role;
+  currentPage = 1;
   const chips = document.querySelectorAll('.admin-filter-chip');
   chips.forEach((c) => {
     const chipRole = c.getAttribute('data-filter');
@@ -716,6 +845,8 @@ export function installAdminGlobals() {
   w.toggleResetPasswordVisibility = toggleResetPasswordVisibility;
   w.adminGenerateRandomPassword = adminGenerateRandomPassword;
   w.submitResetPassword = submitResetPassword;
+  w.adminPrevPage = adminPrevPage;
+  w.adminNextPage = adminNextPage;
 
   // ตรวจสอบสถานะ admin เมื่อโหลดเพื่อแสดง/ซ่อนปุ่ม header
   syncAdminButtonVisibility();
