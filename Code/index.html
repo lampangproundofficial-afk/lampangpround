@@ -665,7 +665,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
             <div class="relative sm:col-span-4">
               <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-              <input id="list-search-input" type="search" class="form-input pl-11 pr-12 text-sm" placeholder="ค้นหาชื่อร้าน, เจ้าของ, หรือเบอร์โทร" oninput="handleSearchInput(event)">
+              <input id="list-search-input" type="search" class="form-input pl-11 pr-12 text-sm" placeholder="ร้าน/เจ้าของ/เบอร์โทร" aria-label="ค้นหาร้าน เจ้าของ หรือเบอร์โทร" oninput="handleSearchInput(event)">
               <button id="list-search-clear" type="button" onclick="clearSearchInput()" aria-label="ล้างคำค้นหา" class="hidden absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors items-center justify-center">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
