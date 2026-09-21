@@ -5,7 +5,7 @@
  */
 // @ts-nocheck
 
-  // State
+// State
   let currentStep = 1;
   const totalSteps = 4;
   let recordsData = [];
@@ -4046,7 +4046,7 @@
 
   function buildDashboardSummary(item) {
     var stats = [
-      { icon: 'layers', label: 'ระดับธุรกิจ', value: item.BusinessLevel || 'Micro SME', bg: '#faf5ff', color: '#7c3aed' },
+      { icon: 'layers', label: 'ระดับธุรกิจ', value: normalizeBusinessLevelLabel(item.BusinessLevel), bg: '#faf5ff', color: '#7c3aed' },
       { icon: 'activity', label: 'สถานะ', value: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : 'เริ่มต้น Startup'), bg: '#ecfdf5', color: '#059669' },
       { icon: 'star', label: 'ศักยภาพ', value: item.PotentialLevel, bg: '#fffbeb', color: '#d97706' }
     ];
@@ -4076,7 +4076,7 @@
   function buildSummaryPills(item) {
     return [
       { label: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : '') || 'เริ่มต้น Startup', tone: 'detail-pill-emerald', icon: 'badge-check' },
-      { label: item.BusinessLevel || 'Micro SME', tone: 'detail-pill-violet', icon: 'sparkles' },
+      { label: normalizeBusinessLevelLabel(item.BusinessLevel), tone: 'detail-pill-violet', icon: 'sparkles' },
       { label: item.PotentialLevel ? `${item.PotentialLevel} ดาว` : 'ยังไม่ประเมิน', tone: 'detail-pill-amber', icon: 'star' }
     ].map(({ label, tone, icon }) => `
       <span class="detail-modal-chip ${tone}">
@@ -4183,7 +4183,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               ${buildDetailField('ที่อยู่', item.LocationText, 'sky')}
               ${buildChipGroup('หมวดหมู่สินค้า/บริการ', item.ProductCategory, 'violet')}
-              ${buildDetailField('ระดับของธุรกิจ', item.BusinessLevel || 'Micro SME', 'amber')}
+              ${buildDetailField('ระดับของธุรกิจ', normalizeBusinessLevelLabel(item.BusinessLevel), 'amber')}
               ${buildChipGroup('ช่องทางจำหน่าย', item.SalesChannel, 'emerald')}
               ${buildDetailField('ราคาเฉลี่ย', item.AvgPrice, 'rose')}
               ${hasCoords ? `
@@ -4794,6 +4794,18 @@
     return raw;
   }
 
+  function normalizeBusinessLevelLabel(val) {
+    var raw = formatDetailValue(val);
+    if (!raw || raw === '-' || raw === 'ไม่ระบุ') return 'Micro SME';
+    var trimmed = String(raw).trim();
+    var lower = trimmed.toLowerCase();
+    if (lower === 'micro sme' || lower === 'micro' || lower === 'microsme') return 'Micro SME';
+    if (lower === 'small sme' || trimmed === 'S' || lower === 'small') return 'Small SME';
+    if (lower === 'medium sme' || trimmed === 'M' || lower === 'medium') return 'Medium SME';
+    if (trimmed === 'อื่น' || trimmed === 'อื่นๆ' || trimmed === 'วิสาหกิจชุมชน' || lower === 'other') return 'วิสาหกิจชุมชน';
+    return trimmed;
+  }
+
   function countByBusinessStatus(records) {
     var counts = {};
     records.forEach(function(item) {
@@ -4816,7 +4828,7 @@
       } else if (raw === 'Medium SME' || raw === 'M' || raw.toLowerCase() === 'medium') {
         counts['Medium SME'] = (counts['Medium SME'] || 0) + 1;
       } else {
-        counts['อื่นๆ'] = (counts['อื่นๆ'] || 0) + 1;
+        counts['วิสาหกิจชุมชน'] = (counts['วิสาหกิจชุมชน'] || 0) + 1;
       }
     });
     return counts;
@@ -5193,6 +5205,9 @@
       var val = (raw === '-' || raw === null || raw === undefined) ? '' : String(raw);
       if (f === 'business_status' && val) {
         val = normalizeBusinessStatusLabel(val);
+      }
+      if (f === 'business_level' && val) {
+        val = normalizeBusinessLevelLabel(val);
       }
       if (el.tagName === 'SELECT' && val) {
         var optExists = Array.prototype.slice.call(el.options).some(function(opt) { return opt.value === val; });
@@ -6165,6 +6180,7 @@ export const __legacyGlobals = {
   restoreExcelExportButton_: typeof restoreExcelExportButton_ === 'function' ? restoreExcelExportButton_ : undefined,
   ensureChartJsLoaded: typeof ensureChartJsLoaded === 'function' ? ensureChartJsLoaded : undefined,
   normalizeBusinessStatusLabel: typeof normalizeBusinessStatusLabel === 'function' ? normalizeBusinessStatusLabel : undefined,
+  normalizeBusinessLevelLabel: typeof normalizeBusinessLevelLabel === 'function' ? normalizeBusinessLevelLabel : undefined,
   countByBusinessStatus: typeof countByBusinessStatus === 'function' ? countByBusinessStatus : undefined,
   countByBusinessLevel: typeof countByBusinessLevel === 'function' ? countByBusinessLevel : undefined,
   countByField: typeof countByField === 'function' ? countByField : undefined,
