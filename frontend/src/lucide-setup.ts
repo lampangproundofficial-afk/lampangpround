@@ -73,6 +73,7 @@ import {
   Upload,
   User,
   UserPlus,
+  Users,
   X,
   ZoomIn,
 } from 'lucide';
@@ -145,6 +146,7 @@ const subset = {
   Upload,
   User,
   UserPlus,
+  Users,
   X,
   ZoomIn,
 };
