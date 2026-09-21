@@ -36,6 +36,11 @@ binding = "DB"
 database_name = "lampang-pround"
 database_id = "TODO_LOCAL_D1_ID"
 
+# Local dev จำลอง R2 ในเครื่อง (wrangler dev สร้างให้อัตโนมัติ) — ไม่มีแล้ว image upload จะพัง
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "lampang-pround-assets-local"
+
 [env.staging]
 name = "lampang-pround-staging"
 

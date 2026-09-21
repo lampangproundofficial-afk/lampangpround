@@ -453,8 +453,8 @@ async function main() {
     eq(data.success, true, 'success');
   });
 
-  await test('replaceProductsByShopId → สำเร็จ สินค้าถูกแทนที่', async () => {
-    const { data } = await rpc('replaceProductsByShopId', {
+  await test('upsertShopRecord + products → สินค้าถูกแทนที่', async () => {
+    const { data } = await rpc('upsertShopRecord', {
       token: ownerToken,
       shopId,
       products: [
@@ -468,8 +468,8 @@ async function main() {
     eq(shop.data.products.length, 5, 'products = SHOP(3 แทนที่) + legacy(2) parity');
   });
 
-  await test('replaceProductsByShopId guest → ปฏิเสธ', async () => {
-    const { data } = await rpc('replaceProductsByShopId', { shopId, products: [] });
+  await test('upsertShopRecord + products guest → ปฏิเสธ', async () => {
+    const { data } = await rpc('upsertShopRecord', { shopId, products: [] });
     eq(data.success, false, 'success');
   });
 
@@ -491,26 +491,6 @@ async function main() {
     });
     eq(data.success, false, 'success');
     eq(data.sessionInvalid, true, 'sessionInvalid flag');
-  });
-
-  await test('replaceProductsByShopId ผู้อื่น → ไม่มีสิทธิ์ (Q5)', async () => {
-    const { data } = await rpc('replaceProductsByShopId', {
-      token: otherToken,
-      shopId,
-      products: [{ productName: 'แอบใส่', price: '1' }],
-    });
-    eq(data.success, false, 'success');
-    assert(String(data.message).includes('ไม่มีสิทธิ์'), 'message');
-  });
-
-  await test('replaceProductsByShopId ร้านไม่มีในระบบ → ปฏิเสธ', async () => {
-    const { data } = await rpc('replaceProductsByShopId', {
-      token: ownerToken,
-      shopId: 'SHOP-NOEXIST',
-      products: [],
-    });
-    eq(data.success, false, 'success');
-    assert(String(data.message).includes('ไม่พบร้านค้า'), 'message');
   });
 
   await test('admin แก้ร้านของคนอื่นได้ (กติกา admin → ทุกร้าน)', async () => {

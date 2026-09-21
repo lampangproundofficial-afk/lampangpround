@@ -21,7 +21,7 @@
 | เรื่อง | มติ | ผลในโค้ด |
 |---|---|---|
 | ช่องโหว่ `upsertShopRecord` (Q1/Q5) | เพิ่ม ownership check — ถือเป็น security fix ไม่ใช่ drift | `worker/src/routes/shops.ts`: admin → ทุกร้าน · user → เฉพาะ `created_by` ตัวเอง · แถว `created_by='Guest'` → admin เท่านั้น |
-| `replaceProductsByShopId` (Q5) | เพิ่ม ownership ด้วย + ไม่พบร้าน → ปฏิเสธ | `handleReplaceProducts` (ค้นทั้ง shop_id และ legacy_backend_id) |
+| `replaceProductsByShopId` (Q5) | ลบ public route ทิ้ง (ไม่มี frontend caller) — ใช้ `upsertShopRecord`+products / `updateRecord` แทน | route ถูกลบจาก RPC map; helper ภายใน `records.ts` ยังอยู่ |
 | Guest path `allowGuestPdf` (Q5) | ปิดสำหรับ route สาธารณะ | ใน Worker ไม่มี internal caller ใช้ path นี้แล้ว (frontend ไม่เรียก 2 ฟังก์ชันนี้เลย) |
 | PDF data source (Q6) | Shops row เป็นหลัก + hydrate ช่องว่างจาก legacy (ตาม `ensureScalableShopRecordForPdf_` Code.gs:1935 / `hasPdfShopMasterData_` Code.gs:1836) | `loadPdfData` ใน `worker/src/routes/pdf.ts` — regression ยืนยันผ่าน PDF title (UTF-16BE hex) |
 | Freeze ระบบเดิม (Q2) | ห้ามแก้ `Code/` จนกว่า cutover ผ่าน | drift guard ด้านล่าง |

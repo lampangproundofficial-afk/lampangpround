@@ -12,7 +12,6 @@ import {
   handleUpsertShopRecord,
   handleGetShopGallery,
   handleGetShopRecord,
-  handleReplaceProducts,
 } from './routes/shops';
 import { handleUploadGalleryImage, handleSoftDeleteGalleryImage } from './routes/gallery';
 import { handleResolveMapLocationUrl } from './routes/geo';
@@ -50,7 +49,6 @@ const RPC: Record<string, (request: Request, env: Env) => Promise<Response>> = {
   upsertShopRecord: handleUpsertShopRecord,
   getShopGallery: handleGetShopGallery,
   getShopRecord: handleGetShopRecord,
-  replaceProductsByShopId: handleReplaceProducts,
   uploadGalleryImage: handleUploadGalleryImage,
   softDeleteGalleryImage: handleSoftDeleteGalleryImage,
   exportShopPdf: handleExportShopPdf,

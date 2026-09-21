@@ -349,40 +349,4 @@ export async function handleGetShopRecord(request: Request, env: Env): Promise<R
   }
 }
 
-/** replaceProductsByShopId (public route) — payload {shopId|backendId, products, token}
- *  การตัดสินใจร่วม (Q5=ข): เพิ่ม ownership check เช่นเดียวกับ upsert
- *  (admin → ทุกร้าน, user → เฉพาะของตัวเอง, ไม่พบร้าน → ปฏิเสธ) */
-export async function handleReplaceProducts(request: Request, env: Env): Promise<Response> {
-  try {
-    const payload = (await readBody(request)) as Record<string, unknown>;
-    const token = payload.token ? str(payload.token) : null;
-    const authResult = await getActiveSessionResult(env, token);
-    if (authResult.error) return jsonResponse(authResult.error, 200, env);
-    const session = authResult.session;
-    if (!session || !session.username) {
-      return jsonResponse({ success: false, message: 'Session ไม่ถูกต้อง' }, 200, env);
-    }
-    const shopId = str(payload.shopId || payload.backendId).trim();
-    if (!shopId) return jsonResponse({ success: false, message: 'shopId is required.' }, 200, env);
-    const shop =
-      (await findShop(env, shopId)) ??
-      (await env.DB.prepare(`SELECT * FROM shops WHERE legacy_backend_id = ? LIMIT 1`)
-        .bind(shopId)
-        .first<Record<string, unknown>>());
-    if (!shop) {
-      return jsonResponse({ success: false, message: 'ไม่พบร้านค้าในระบบ' }, 200, env);
-    }
-    const check = checkOwnership(session, str(shop.created_by), 'แก้ไข');
-    if (!check.ok) return jsonResponse({ success: false, message: check.message }, 200, env);
-    const sync = await replaceProductsByShopId(env, shopId, payload.products, currentUserName(session));
-    return jsonResponse(sync, 200, env);
-  } catch (err) {
-    return jsonResponse(
-      { success: false, message: `เกิดข้อผิดพลาด: ${err instanceof Error ? err.message : String(err)}` },
-      200,
-      env
-    );
-  }
-}
-
 export { extractDriveFileIdFromUrl, isValidGuestAccess };
