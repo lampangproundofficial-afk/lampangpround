@@ -71,6 +71,17 @@ function display(value: unknown): string {
   return text || NOT_SPECIFIED;
 }
 
+function formatBusinessLevel(value: unknown): string {
+  // ponytail: แปลง 'อื่น' / 'อื่นๆ' / 'other' เป็น 'วิสาหกิจชุมชน', ค่าว่างคง 'ไม่ระบุ' ตามเดิม, ค่าอื่นตามจริง
+  const text = display(value);
+  if (text === NOT_SPECIFIED) return NOT_SPECIFIED;
+  const lower = text.toLowerCase();
+  if (text === 'อื่น' || text === 'อื่นๆ' || lower === 'other') {
+    return 'วิสาหกิจชุมชน';
+  }
+  return text;
+}
+
 interface PdfGalleryItem {
   ProductID: string;
   ImageRole: string;
@@ -383,7 +394,7 @@ export async function exportShopPdfNative(
   bizRows.push(
     ['ประเภทธุรกิจ', display(shop.BusinessType)],
     ['หมวดหมู่สินค้า', display(productCategory)],
-    ['ขนาดวิสาหกิจ', display(shop.BusinessLevel)],
+    ['ขนาดวิสาหกิจ', formatBusinessLevel(shop.BusinessLevel)],
     ['ช่องทางจำหน่าย', display(salesChannel)],
     ['ราคาเฉลี่ย', display(shop.AvgPrice)],
     ['สถานะธุรกิจ', display(shop.BusinessStatus)],

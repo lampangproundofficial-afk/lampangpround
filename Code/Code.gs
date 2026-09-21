@@ -2112,6 +2112,14 @@ function pdfDisplayValue_(value) {
   return text || 'ไม่ระบุ';
 }
 
+function formatBusinessLevelPdf_(value) {
+  const text = pdfDisplayValue_(value);
+  if (text === 'ไม่ระบุ') return 'ไม่ระบุ';
+  const lower = text.toLowerCase();
+  if (text === 'อื่น' || text === 'อื่นๆ' || lower === 'other') return 'วิสาหกิจชุมชน';
+  return text;
+}
+
 function appendUniformPdfImage_(cell, blob, size) {
   if (!cell || !blob) return null;
   const pixel = Math.max(1, Number(size) || PDF_IMAGE_CELL_SIZE || 120);
@@ -2722,7 +2730,7 @@ function buildTemplatePlaceholders_(shop, products, gallery) {
     '{{ShopHistory}}': pdfDisplayValue_(shop.ShopHistory || shop.shop_history),
     '{{BusinessType}}': pdfDisplayValue_(shop.BusinessType),
     '{{ProductCategory}}': pdfDisplayValue_(parseJsonArray_(shop.ProductCategory).join(', ')),
-    '{{BusinessLevel}}': pdfDisplayValue_(shop.BusinessLevel),
+    '{{BusinessLevel}}': formatBusinessLevelPdf_(shop.BusinessLevel),
     '{{SalesChannel}}': pdfDisplayValue_(parseJsonArray_(shop.SalesChannel).join(', ')),
     '{{AvgPrice}}': pdfDisplayValue_(shop.AvgPrice),
     '{{BusinessStatus}}': pdfDisplayValue_(shop.BusinessStatus),
