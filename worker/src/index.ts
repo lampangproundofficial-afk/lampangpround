@@ -28,6 +28,7 @@ import {
   handleAdminUpdateUserRole,
   handleAdminDeleteUser,
   handleAdminCreateUser,
+  handleAdminResetPassword,
 } from './routes/admin';
 
 const SESSION_INVALID = {
@@ -61,6 +62,7 @@ const RPC: Record<string, (request: Request, env: Env) => Promise<Response>> = {
   adminUpdateUserRole: handleAdminUpdateUserRole,
   adminDeleteUser: handleAdminDeleteUser,
   adminCreateUser: handleAdminCreateUser,
+  adminResetPassword: handleAdminResetPassword,
 };
 
 async function handleApi(request: Request, env: Env): Promise<Response> {

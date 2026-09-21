@@ -233,34 +233,42 @@ export function renderAdminUsers() {
                 <div class="text-[11px] text-slate-400">เข้าสู่ระบบ: ${formatDateThai(u.last_login_at)}</div>
               </td>
               <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                ${
-                  isMe
-                    ? '<span class="text-xs text-slate-300 italic">บัญชีปัจจุบัน</span>'
-                    : isPendingDel
-                    ? `
-                      <div class="inline-flex items-center justify-end gap-1.5 p-1 bg-rose-50 border border-rose-200 rounded-xl shadow-xs animate-fadeIn">
-                        <span class="text-[11px] font-semibold text-rose-700 pl-2 pr-0.5 select-none">ยืนยันลบ?</span>
-                        <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" 
-                                class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1 active:scale-95"
-                                title="ยืนยันการลบบัญชี">
-                          ลบ
+                <div class="inline-flex items-center justify-end gap-1.5">
+                  <button onclick="window.openResetPasswordModal('${escapeHtml(u.username)}', '${escapeHtml(u.name || u.username)}')"
+                          class="inline-flex items-center justify-center w-8 h-8 text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border border-amber-200/80 shadow-xs"
+                          title="รีเซ็ตรหัสผ่าน"
+                          aria-label="รีเซ็ตรหัสผ่าน ${escapeHtml(u.username)}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                  </button>
+                  ${
+                    isMe
+                      ? '<span class="text-xs text-slate-400 italic pl-1">(บัญชีคุณ)</span>'
+                      : isPendingDel
+                      ? `
+                        <div class="inline-flex items-center justify-end gap-1.5 p-1 bg-rose-50 border border-rose-200 rounded-xl shadow-xs animate-fadeIn">
+                          <span class="text-[11px] font-semibold text-rose-700 pl-2 pr-0.5 select-none">ยืนยันลบ?</span>
+                          <button onclick="window.adminExecuteDelete('${escapeHtml(u.username)}')" 
+                                  class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1 active:scale-95"
+                                  title="ยืนยันการลบบัญชี">
+                            ลบ
+                          </button>
+                          <button onclick="window.adminCancelDelete()" 
+                                  class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 text-xs font-medium rounded-lg border border-slate-200 shadow-xs transition-colors active:scale-95"
+                                  title="ยกเลิกการลบ">
+                            ยกเลิก
+                          </button>
+                        </div>
+                      `
+                      : `
+                        <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
+                                class="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                                title="ลบบัญชีผู้ใช้"
+                                aria-label="ลบบัญชี ${escapeHtml(u.username)}">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
-                        <button onclick="window.adminCancelDelete()" 
-                                class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 text-xs font-medium rounded-lg border border-slate-200 shadow-xs transition-colors active:scale-95"
-                                title="ยกเลิกการลบ">
-                          ยกเลิก
-                        </button>
-                      </div>
-                    `
-                    : `
-                      <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
-                              class="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
-                              title="ลบบัญชีผู้ใช้"
-                              aria-label="ลบบัญชี ${escapeHtml(u.username)}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                      </button>
-                    `
-                }
+                      `
+                  }
+                </div>
               </td>
             </tr>
           `;
@@ -321,28 +329,37 @@ export function renderAdminUsers() {
                 </div>
               </div>
 
-              <div class="pt-1 flex items-center justify-between gap-2">
+              <div class="pt-1 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                 <select onchange="window.adminChangeRole('${escapeHtml(u.username)}', this.value)"
-                        class="flex-1 text-xs rounded-xl border border-slate-200 px-3 py-2 bg-white text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 min-h-[44px]"
+                        class="flex-1 min-w-[140px] text-xs rounded-xl border border-slate-200 px-3 py-2 bg-white text-slate-700 shadow-sm focus:outline-none focus:border-blue-500 min-h-[44px]"
                         ${isMe ? 'disabled' : ''}>
                   <option value="user" ${u.role === 'user' ? 'selected' : ''}>👤 สิทธิ์: สมาชิก</option>
                   <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>⭐ สิทธิ์: ผู้ดูแลระบบ</option>
                 </select>
 
-                ${
-                  isMe
-                    ? '<span class="text-xs text-slate-300 italic px-2">คุณ</span>'
-                    : isPendingDel
-                    ? ''
-                    : `
-                      <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
-                              class="px-3.5 py-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] shrink-0 transition-colors active:scale-95"
-                              title="ลบบัญชี">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        <span>ลบ</span>
-                      </button>
-                    `
-                }
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="window.openResetPasswordModal('${escapeHtml(u.username)}', '${escapeHtml(u.name || u.username)}')"
+                          class="px-3 py-2 text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] transition-colors active:scale-95"
+                          title="รีเซ็ตรหัสผ่าน">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    <span>รีเซ็ตรหัส</span>
+                  </button>
+
+                  ${
+                    isMe
+                      ? '<span class="text-xs text-slate-400 italic px-1.5 self-center">(บัญชีคุณ)</span>'
+                      : isPendingDel
+                      ? ''
+                      : `
+                        <button onclick="window.adminConfirmDelete('${escapeHtml(u.username)}')"
+                                class="px-3 py-2 text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 min-h-[44px] shrink-0 transition-colors active:scale-95"
+                                title="ลบบัญชี">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          <span>ลบ</span>
+                        </button>
+                      `
+                  }
+                </div>
               </div>
 
               ${
@@ -533,6 +550,154 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+export function openResetPasswordModal(username: string, name?: string) {
+  if (!isCurrentUserAdmin()) {
+    alert('คุณไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ดูแลระบบ)');
+    return;
+  }
+  const modal = document.getElementById('modal-admin-reset-password');
+  if (!modal) return;
+
+  const targetUsernameEl = document.getElementById('reset-target-username');
+  const targetNameEl = document.getElementById('reset-target-name');
+  const targetAvatarEl = document.getElementById('reset-target-avatar');
+  const usernameInput = document.getElementById('reset-username-input') as HTMLInputElement | null;
+  const newPwdInput = document.getElementById('reset-new-password') as HTMLInputElement | null;
+  const confirmPwdInput = document.getElementById('reset-confirm-password') as HTMLInputElement | null;
+
+  if (targetUsernameEl) targetUsernameEl.textContent = `@${username}`;
+  if (targetNameEl) targetNameEl.textContent = name || username;
+  if (targetAvatarEl) targetAvatarEl.textContent = (name || username || '?').charAt(0).toUpperCase();
+  if (usernameInput) usernameInput.value = username;
+  if (newPwdInput) {
+    newPwdInput.value = '';
+    newPwdInput.type = 'password';
+  }
+  if (confirmPwdInput) {
+    confirmPwdInput.value = '';
+    confirmPwdInput.type = 'password';
+  }
+
+  const toggleIcon = document.getElementById('toggle-pwd-icon');
+  if (toggleIcon) toggleIcon.textContent = '👁️';
+
+  modal.classList.remove('opacity-0', 'pointer-events-none');
+  modal.classList.add('opacity-100', 'pointer-events-auto');
+
+  const content = document.getElementById('modal-admin-reset-password-content');
+  if (content) {
+    content.classList.remove('scale-95', 'translate-y-4');
+    content.classList.add('scale-100', 'translate-y-0');
+  }
+
+  setTimeout(() => {
+    if (newPwdInput) newPwdInput.focus();
+  }, 100);
+}
+
+export function closeResetPasswordModal() {
+  const modal = document.getElementById('modal-admin-reset-password');
+  if (!modal) return;
+
+  const content = document.getElementById('modal-admin-reset-password-content');
+  if (content) {
+    content.classList.add('scale-95', 'translate-y-4');
+    content.classList.remove('scale-100', 'translate-y-0');
+  }
+  modal.classList.add('opacity-0', 'pointer-events-none');
+  modal.classList.remove('opacity-100', 'pointer-events-auto');
+}
+
+export function toggleResetPasswordVisibility() {
+  const newPwdInput = document.getElementById('reset-new-password') as HTMLInputElement | null;
+  const confirmPwdInput = document.getElementById('reset-confirm-password') as HTMLInputElement | null;
+  const toggleIcon = document.getElementById('toggle-pwd-icon');
+  if (!newPwdInput) return;
+
+  const isPassword = newPwdInput.type === 'password';
+  newPwdInput.type = isPassword ? 'text' : 'password';
+  if (confirmPwdInput) confirmPwdInput.type = isPassword ? 'text' : 'password';
+  if (toggleIcon) toggleIcon.textContent = isPassword ? '🙈' : '👁️';
+}
+
+export function adminGenerateRandomPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+  let pwd = 'LP-';
+  for (let i = 0; i < 6; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const newPwdInput = document.getElementById('reset-new-password') as HTMLInputElement | null;
+  const confirmPwdInput = document.getElementById('reset-confirm-password') as HTMLInputElement | null;
+  if (newPwdInput) {
+    newPwdInput.value = pwd;
+    newPwdInput.type = 'text';
+  }
+  if (confirmPwdInput) {
+    confirmPwdInput.value = pwd;
+    confirmPwdInput.type = 'text';
+  }
+  const toggleIcon = document.getElementById('toggle-pwd-icon');
+  if (toggleIcon) toggleIcon.textContent = '🙈';
+
+  showAdminToast('สุ่มรหัสผ่านใหม่เรียบร้อย (สามารถคัดลอกได้)', 'info');
+}
+
+export async function submitResetPassword(e: Event) {
+  e.preventDefault();
+  const token = getToken();
+  if (!token) return;
+
+  const usernameInput = document.getElementById('reset-username-input') as HTMLInputElement | null;
+  const newPwdInput = document.getElementById('reset-new-password') as HTMLInputElement | null;
+  const confirmPwdInput = document.getElementById('reset-confirm-password') as HTMLInputElement | null;
+  const submitBtn = document.getElementById('btn-submit-reset-password') as HTMLButtonElement | null;
+
+  const username = usernameInput?.value.trim().toLowerCase() || '';
+  const newPassword = newPwdInput?.value.trim() || '';
+  const confirmPassword = confirmPwdInput?.value.trim() || '';
+
+  if (!username) {
+    showAdminToast('ไม่พบข้อมูลชื่อผู้ใช้', 'error');
+    return;
+  }
+  if (!newPassword || newPassword.length < 4) {
+    showAdminToast('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร', 'error');
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    showAdminToast('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน', 'error');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังบันทึก...';
+  }
+
+  try {
+    const res = (await callGas('adminResetPassword', [
+      { token, username, newPassword },
+    ])) as {
+      success?: boolean;
+      message?: string;
+    };
+
+    if (res && res.success) {
+      showAdminToast(`รีเซ็ตรหัสผ่านของ @${username} สำเร็จ`, 'success');
+      closeResetPasswordModal();
+    } else {
+      showAdminToast(res?.message || 'รีเซ็ตรหัสผ่านไม่สำเร็จ', 'error');
+    }
+  } catch (err) {
+    showAdminToast(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'บันทึกรหัสผ่าน';
+    }
+  }
+}
+
 /** ติดตั้ง Global Handlers สำหรับ inline onclick / onchange */
 export function installAdminGlobals() {
   const w = window as unknown as Record<string, unknown>;
@@ -546,6 +711,11 @@ export function installAdminGlobals() {
   w.toggleAddUserForm = toggleAddUserForm;
   w.submitAddUser = submitAddUser;
   w.renderAdminUsers = renderAdminUsers;
+  w.openResetPasswordModal = openResetPasswordModal;
+  w.closeResetPasswordModal = closeResetPasswordModal;
+  w.toggleResetPasswordVisibility = toggleResetPasswordVisibility;
+  w.adminGenerateRandomPassword = adminGenerateRandomPassword;
+  w.submitResetPassword = submitResetPassword;
 
   // ตรวจสอบสถานะ admin เมื่อโหลดเพื่อแสดง/ซ่อนปุ่ม header
   syncAdminButtonVisibility();

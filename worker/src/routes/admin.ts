@@ -174,3 +174,45 @@ export async function handleAdminCreateUser(request: Request, env: Env): Promise
     return gasError(err, env);
   }
 }
+
+/** adminResetPassword — แอดมินตั้งรหัสผ่านใหม่ให้ผู้ใช้หรือแอดมินคนอื่น/ตัวเอง */
+export async function handleAdminResetPassword(request: Request, env: Env): Promise<Response> {
+  try {
+    const auth = await requireAdmin(request, env);
+    if (!auth.ok) return auth.response;
+
+    const targetUsername = str(auth.payload.username).trim().toLowerCase();
+    const newPassword = str(auth.payload.newPassword || auth.payload.password).trim();
+
+    if (!targetUsername) {
+      return jsonResponse({ success: false, message: 'กรุณาระบุชื่อผู้ใช้ที่ต้องการรีเซ็ตรหัสผ่าน' }, 200, env);
+    }
+
+    if (!newPassword || newPassword.length < 4) {
+      return jsonResponse({ success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร' }, 200, env);
+    }
+
+    const existingUser = await env.DB.prepare(
+      `SELECT username FROM users WHERE username = ?`
+    ).bind(targetUsername).first<{ username: string }>();
+
+    if (!existingUser) {
+      return jsonResponse({ success: false, message: 'ไม่พบบัญชีผู้ใช้นี้ในระบบ' }, 200, env);
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await env.DB.prepare(
+      `UPDATE users SET password_hash = ? WHERE username = ?`
+    ).bind(passwordHash, targetUsername).run();
+
+    // เพื่อความปลอดภัย: ถ้าไม่ใช่ตัวเอง ล้าง session ของผู้ใช้คนนั้นเพื่อให้ล็อกอินใหม่ด้วยรหัสใหม่
+    if (auth.session.username.toLowerCase() !== targetUsername) {
+      await env.DB.prepare(`DELETE FROM sessions WHERE username = ?`).bind(targetUsername).run();
+    }
+
+    return jsonResponse({ success: true, message: 'รีเซ็ตรหัสผ่านสำเร็จ' }, 200, env);
+  } catch (err) {
+    return gasError(err, env);
+  }
+}
+
