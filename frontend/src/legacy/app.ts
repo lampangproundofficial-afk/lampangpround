@@ -519,6 +519,7 @@
 
     var form = document.getElementById('mainForm');
     if (form) form.reset();
+    toggleBeverageAlcoholOptions();
     clearFormDraft();
     renderProductList();
     renderEditProductList();
@@ -957,7 +958,7 @@
 
       elements.forEach(function(el) {
         if (el.type === 'checkbox') {
-          el.checked = Array.isArray(value) && value.indexOf(el.value) !== -1;
+          el.checked = Array.isArray(value) && (value.indexOf(el.value) !== -1 || (el.value === 'เครื่องดื่ม' && value.some(function(v) { return String(v).indexOf('เครื่องดื่ม') !== -1; })));
           return;
         }
         if (el.type === 'radio') {
@@ -967,6 +968,22 @@
         el.value = value;
       });
     });
+
+    var bevCheck = document.getElementById('cat-beverage-check');
+    if (bevCheck && bevCheck.checked && draft.fields) {
+      if (Array.isArray(draft.fields.product_category)) {
+        draft.fields.product_category.forEach(function(cat) {
+          if (String(cat).indexOf('มีแอลกอฮอล์') !== -1 && String(cat).indexOf('ไม่มีแอลกอฮอล์') === -1) {
+            var r = form.querySelector('input[name="beverage_alcohol_type"][value="มีแอลกอฮอล์"]');
+            if (r) r.checked = true;
+          } else if (String(cat).indexOf('ไม่มีแอลกอฮอล์') !== -1) {
+            var r = form.querySelector('input[name="beverage_alcohol_type"][value="ไม่มีแอลกอฮอล์"]');
+            if (r) r.checked = true;
+          }
+        });
+      }
+    }
+    toggleBeverageAlcoholOptions();
 
     currentProducts = Array.isArray(draft.products) ? draft.products.map(function(item, index) {
       return {
@@ -1016,6 +1033,17 @@
     });
 
     window.addEventListener('beforeunload', saveFormDraft);
+  }
+
+  function toggleBeverageAlcoholOptions() {
+    var check = document.getElementById('cat-beverage-check');
+    var group = document.getElementById('beverage-alcohol-group');
+    if (!group) return;
+    if (check && check.checked) {
+      group.classList.remove('hidden');
+    } else {
+      group.classList.add('hidden');
+    }
   }
 
   function formatProductPriceDisplay(value) {
@@ -2950,6 +2978,13 @@
       }
     }
     data.phone = cleanPhoneValue(data.phone);
+    if (Array.isArray(data.product_category)) {
+      var bevIdx = data.product_category.indexOf('เครื่องดื่ม');
+      if (bevIdx !== -1) {
+        var alcType = data.beverage_alcohol_type || 'ไม่มีแอลกอฮอล์';
+        data.product_category[bevIdx] = 'เครื่องดื่ม (' + alcType + ')';
+      }
+    }
     data.products = currentProducts.map(function(item, index) {
       return {
         productName: String(item.productName || '').trim(),
@@ -3018,6 +3053,7 @@
     document.body.style.overflow = '';
     if (action === 'new') {
       document.getElementById('mainForm').reset();
+      toggleBeverageAlcoholOptions();
       currentStep = 1;
       updateStepUI();
       ['image_shop', 'image_product', 'image_activity'].forEach(function(n) { clearImage(n); });
@@ -6089,6 +6125,7 @@ export const __legacyGlobals = {
   clearFormDraft: typeof clearFormDraft === 'function' ? clearFormDraft : undefined,
   restoreFormDraft: typeof restoreFormDraft === 'function' ? restoreFormDraft : undefined,
   bindFormPersistence: typeof bindFormPersistence === 'function' ? bindFormPersistence : undefined,
+  toggleBeverageAlcoholOptions: typeof toggleBeverageAlcoholOptions === 'function' ? toggleBeverageAlcoholOptions : undefined,
   formatProductPriceDisplay: typeof formatProductPriceDisplay === 'function' ? formatProductPriceDisplay : undefined,
   calculateAverageProductPrice: typeof calculateAverageProductPrice === 'function' ? calculateAverageProductPrice : undefined,
   syncProductSummaryFields: typeof syncProductSummaryFields === 'function' ? syncProductSummaryFields : undefined,
