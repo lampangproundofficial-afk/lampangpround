@@ -5248,12 +5248,14 @@
     Object.keys(keyMap).forEach(function(f) {
       var el = form.querySelector('[name="'+f+'"]');
       if (!el) return;
-      var raw = item[keyMap[f]] || '';
+      var raw = (item[keyMap[f]] !== undefined && item[keyMap[f]] !== null && item[keyMap[f]] !== '') ? item[keyMap[f]]
+              : (item[f] !== undefined && item[f] !== null && item[f] !== '') ? item[f]
+              : '';
       var val = (raw === '-' || raw === null || raw === undefined) ? '' : String(raw);
-      if (f === 'business_status' && val) {
+      if (f === 'business_status') {
         val = normalizeBusinessStatusLabel(val);
       }
-      if (f === 'business_level' && val) {
+      if (f === 'business_level') {
         val = normalizeBusinessLevelLabel(val);
       }
       if (el.tagName === 'SELECT' && val) {
@@ -5933,6 +5935,7 @@
     isEditProductListExpanded = false;
     editProductVisibleCount = 0;
     renderEditProductList();
+    populateEditForm(item);
     lucide.createIcons();
 
     const requestToken = ++_editRequestToken;
