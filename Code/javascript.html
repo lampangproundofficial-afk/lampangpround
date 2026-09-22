@@ -5286,14 +5286,12 @@
     var catRaw = item.ProductCategory || item.productCategory || '';
     var catList = extractListItems(catRaw);
     var editCatCheckboxes = form.querySelectorAll('#edit-product-category-group input[name="product_category"]');
-    var hasBeverage = false;
     editCatCheckboxes.forEach(function(cb) {
       var isChecked = catList.some(function(c) {
         var baseC = String(c || '').replace(/\s*\([^)]*\)/g, '').trim();
         return baseC === cb.value || String(c || '').trim() === cb.value || normalizeProductCategory(baseC) === normalizeProductCategory(cb.value);
       });
       cb.checked = isChecked;
-      if (cb.value === 'เครื่องดื่ม' && isChecked) hasBeverage = true;
     });
 
     var bevSelect = form.querySelector('[name="beverage_alcohol_type"]');
