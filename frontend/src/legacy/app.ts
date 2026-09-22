@@ -1046,6 +1046,17 @@
     }
   }
 
+  function toggleEditBeverageAlcoholOptions() {
+    var check = document.getElementById('edit-cat-beverage-check');
+    var group = document.getElementById('edit-beverage-group');
+    if (!group) return;
+    if (check && check.checked) {
+      group.classList.remove('hidden');
+    } else {
+      group.classList.add('hidden');
+    }
+  }
+
   function formatProductPriceDisplay(value) {
     const text = String(value == null ? '' : value).trim();
     if (!text) return '-';
@@ -4205,11 +4216,12 @@
               ${buildDetailField('รหัสรายการ', item.LamproundID, 'blue', 'คัดลอกรหัสรายการ')}
               ${buildDetailField('ชื่อผู้ประกอบการ / ร้านค้า', item.BusinessName, 'sky')}
               ${buildDetailField('ชื่อเจ้าของ', item.OwnerName, 'violet')}
+              ${buildDetailField('เบอร์โทรศัพท์', detailPhone, 'emerald')}
               ${buildDetailField('ร้านค้าในโครงการ', (item.InProject === true || item.InProject === 1 || item.InProject === '1') ? '⭐ อยู่ในโครงการ (Premium)' : (item.InProject === false || item.InProject === 0 || item.InProject === '0') ? 'ไม่อยู่ในโครงการ' : 'ยังไม่ระบุ', (item.InProject === true || item.InProject === 1 || item.InProject === '1') ? 'amber' : 'blue')}
               ${buildDetailField('วันที่บันทึก', item.CreatedAt, 'amber')}
-              ${formatDetailValue(item.LineID) !== '-' ? buildDetailField('Line ID', item.LineID, 'emerald', 'คัดลอก Line ID') : ''}
-              ${formatDetailValue(item.Facebook) !== '-' ? buildLinkField('Facebook', item.Facebook, 'facebook') : ''}
-              ${formatDetailValue(item.Website) !== '-' ? buildLinkField('Website', item.Website, 'globe') : ''}
+              ${buildDetailField('Line ID', item.LineID, 'emerald', 'คัดลอก Line ID')}
+              ${formatDetailValue(item.Facebook) !== '-' ? buildLinkField('Facebook', item.Facebook, 'facebook') : buildDetailField('Facebook', '-', 'sky')}
+              ${formatDetailValue(item.Website) !== '-' ? buildLinkField('Website', item.Website, 'globe') : buildDetailField('Website', '-', 'sky')}
             </div>
           </section>
 
@@ -4255,7 +4267,7 @@
             </div>
           </section>
 
-          ${hasShopHistory ? `<section class="detail-section detail-section-amber">
+          <section class="detail-section detail-section-amber">
             <div class="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h4 class="detail-section-title">ประวัติร้านค้า</h4>
@@ -4263,8 +4275,8 @@
               </div>
               <span class="detail-pill detail-pill-amber">History</span>
             </div>
-            ${buildMobileCollapsibleText(shopHistory, 'detail-shop-history', 'text-sm text-slate-700 leading-relaxed whitespace-pre-line')}
-          </section>` : ''}
+            ${hasShopHistory ? buildMobileCollapsibleText(shopHistory, 'detail-shop-history', 'text-sm text-slate-700 leading-relaxed whitespace-pre-line') : '<p class="text-sm text-slate-400">-</p>'}
+          </section>
 
           ${buildProductCardsSection(_pdProducts, item.gallery) || '<div id="detail-products-section"></div>'}
         </div>
@@ -5275,10 +5287,21 @@
       }
     }
 
+    var catRaw = item.ProductCategory || item.productCategory || '';
+    var catList = extractListItems(catRaw);
+    var editCatCheckboxes = form.querySelectorAll('#edit-product-category-group input[name="product_category"]');
+    var hasBeverage = false;
+    editCatCheckboxes.forEach(function(cb) {
+      var isChecked = catList.some(function(c) {
+        var baseC = String(c || '').replace(/\s*\([^)]*\)/g, '').trim();
+        return baseC === cb.value || String(c || '').trim() === cb.value;
+      });
+      cb.checked = isChecked;
+      if (cb.value === 'เครื่องดื่ม' && isChecked) hasBeverage = true;
+    });
+
     var bevSelect = form.querySelector('[name="beverage_alcohol_type"]');
     if (bevSelect) {
-      var catRaw = item.ProductCategory || item.productCategory || '';
-      var catList = extractListItems(catRaw);
       var hasAlcohol = catList.some(function(c) {
         var str = String(c || '');
         return str.indexOf('มีแอลกอฮอล์') !== -1 && str.indexOf('ไม่มีแอลกอฮอล์') === -1;
@@ -5291,9 +5314,10 @@
       } else if (hasNonAlcohol) {
         bevSelect.value = 'ไม่มีแอลกอฮอล์';
       } else {
-        bevSelect.value = '';
+        bevSelect.value = hasBeverage ? 'ไม่มีแอลกอฮอล์' : '';
       }
     }
+    toggleEditBeverageAlcoholOptions();
 
     var mapUrlInput = document.getElementById('edit_map_url_input');
     if (mapUrlInput) {
@@ -5997,28 +6021,20 @@
     for (var i=0; i<els.length; i++) { if (els[i].name) data[els[i].name] = els[i].value; }
     data.phone = cleanPhoneValue(data.phone);
 
-    var existingCats = extractListItems(item.ProductCategory || item.productCategory || '');
-    var bevIdx = -1;
-    for (var ci = 0; ci < existingCats.length; ci++) {
-      if (normalizeProductCategory(existingCats[ci]) === 'เครื่องดื่ม') {
-        bevIdx = ci;
-        break;
-      }
-    }
+    var checkedCatEls = form.querySelectorAll('#edit-product-category-group input[name="product_category"]:checked');
+    var selectedCats = [];
+    checkedCatEls.forEach(function(el) {
+      selectedCats.push(el.value);
+    });
+
     var selectedAlc = String(data.beverage_alcohol_type || '').trim();
-    if (selectedAlc) {
-      var newBevLabel = 'เครื่องดื่ม (' + selectedAlc + ')';
-      if (bevIdx !== -1) {
-        existingCats[bevIdx] = newBevLabel;
-      } else {
-        existingCats.push(newBevLabel);
+    var finalCats = selectedCats.map(function(cat) {
+      if (cat === 'เครื่องดื่ม') {
+        return selectedAlc ? ('เครื่องดื่ม (' + selectedAlc + ')') : 'เครื่องดื่ม';
       }
-    } else {
-      if (bevIdx !== -1) {
-        existingCats[bevIdx] = 'เครื่องดื่ม';
-      }
-    }
-    data.product_category = existingCats;
+      return cat;
+    });
+    data.product_category = finalCats;
 
     data.products = editProducts.map(function(item, index) {
       return {
@@ -6065,6 +6081,9 @@
           } catch (e) { }
           closeEditModal();
           loadRecords();
+          if (detailTargetIndex !== null && recordsData[detailTargetIndex] && recordsData[detailTargetIndex].BackendId === item.BackendId) {
+            openDetailModal(detailTargetIndex);
+          }
           showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success');
         }, function(message) {
           _isEditing = false;
@@ -6175,6 +6194,7 @@ export const __legacyGlobals = {
   restoreFormDraft: typeof restoreFormDraft === 'function' ? restoreFormDraft : undefined,
   bindFormPersistence: typeof bindFormPersistence === 'function' ? bindFormPersistence : undefined,
   toggleBeverageAlcoholOptions: typeof toggleBeverageAlcoholOptions === 'function' ? toggleBeverageAlcoholOptions : undefined,
+  toggleEditBeverageAlcoholOptions: typeof toggleEditBeverageAlcoholOptions === 'function' ? toggleEditBeverageAlcoholOptions : undefined,
   formatProductPriceDisplay: typeof formatProductPriceDisplay === 'function' ? formatProductPriceDisplay : undefined,
   calculateAverageProductPrice: typeof calculateAverageProductPrice === 'function' ? calculateAverageProductPrice : undefined,
   syncProductSummaryFields: typeof syncProductSummaryFields === 'function' ? syncProductSummaryFields : undefined,
