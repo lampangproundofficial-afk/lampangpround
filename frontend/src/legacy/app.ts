@@ -5316,7 +5316,7 @@
       } else if (hasNonAlcohol) {
         bevSelect.value = 'ไม่มีแอลกอฮอล์';
       } else {
-        bevSelect.value = hasBeverage ? 'ไม่มีแอลกอฮอล์' : '';
+        bevSelect.value = '';
       }
     }
     toggleEditBeverageAlcoholOptions();
