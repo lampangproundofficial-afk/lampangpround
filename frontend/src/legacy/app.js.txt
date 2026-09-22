@@ -5287,7 +5287,7 @@
     editCatCheckboxes.forEach(function(cb) {
       var isChecked = catList.some(function(c) {
         var baseC = String(c || '').replace(/\s*\([^)]*\)/g, '').trim();
-        return baseC === cb.value || String(c || '').trim() === cb.value;
+        return baseC === cb.value || String(c || '').trim() === cb.value || normalizeProductCategory(baseC) === normalizeProductCategory(cb.value);
       });
       cb.checked = isChecked;
       if (cb.value === 'เครื่องดื่ม' && isChecked) hasBeverage = true;
