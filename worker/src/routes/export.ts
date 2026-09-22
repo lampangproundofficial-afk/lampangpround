@@ -220,9 +220,7 @@ async function buildExcelWorkbook(
   });
 
   rows.forEach((row, index) => {
-    const productCategories = parseJsonArray(row.product_category)
-      .map((c) => (c === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : c))
-      .join(', ');
+    const productCategories = parseJsonArray(row.product_category).join(', ');
     const inProject = row.in_project === 1 ? '✓' : '';
     const added = sheet.addRow([
       index + 1,

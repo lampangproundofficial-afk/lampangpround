@@ -2729,7 +2729,7 @@ function buildTemplatePlaceholders_(shop, products, gallery) {
     '{{LocationText}}': pdfDisplayValue_(shop.LocationText),
     '{{ShopHistory}}': pdfDisplayValue_(shop.ShopHistory || shop.shop_history),
     '{{BusinessType}}': pdfDisplayValue_(shop.BusinessType),
-    '{{ProductCategory}}': pdfDisplayValue_(parseJsonArray_(shop.ProductCategory).map(function(c) { return c === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : c; }).join(', ')),
+    '{{ProductCategory}}': pdfDisplayValue_(parseJsonArray_(shop.ProductCategory).join(', ')),
     '{{BusinessLevel}}': formatBusinessLevelPdf_(shop.BusinessLevel),
     '{{SalesChannel}}': pdfDisplayValue_(parseJsonArray_(shop.SalesChannel).join(', ')),
     '{{AvgPrice}}': pdfDisplayValue_(shop.AvgPrice),

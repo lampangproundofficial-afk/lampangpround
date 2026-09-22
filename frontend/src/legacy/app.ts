@@ -4660,8 +4660,7 @@
       var headers = ['รหัส', 'ชื่อร้าน', 'เจ้าของ', 'โทร', 'อำเภอ', 'ที่อยู่', 'ประเภทธุรกิจ', 'หมวดหมู่สินค้า/บริการ', 'ร้านค้าในโครงการ', 'สถานะ', 'วันที่', 'ประวัติร้านค้า'];
       var aoa = [headers];
       rows.forEach(function(item) {
-        var rawCats = extractListItems(item.ProductCategory || item.productCategory || '');
-        var productCategories = rawCats.map(function(c) { return c === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : c; }).join(', ');
+        var productCategories = rawCats.join(', ');
         var inProject = (item.InProject === true || item.InProject === 1 || item.InProject === '1') ? '✓' : '';
         aoa.push([
           item.LamproundID || '',

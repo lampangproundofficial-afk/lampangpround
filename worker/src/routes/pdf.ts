@@ -372,9 +372,7 @@ export async function exportShopPdfNative(
     }
   };
 
-  const productCategory = parseJsonArray(shop.ProductCategory)
-    .map((c) => (c === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : c))
-    .join(', ');
+  const productCategory = parseJsonArray(shop.ProductCategory).join(', ');
   const salesChannel = parseJsonArray(shop.SalesChannel).join(', ');
   drawSectionHeading('ข้อมูลร้านค้าและประวัติ');
   drawLabelValueTable([
