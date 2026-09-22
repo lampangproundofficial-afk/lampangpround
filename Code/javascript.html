@@ -3857,8 +3857,13 @@
   }
 
   function buildChipGroup(label, value, accent = 'blue') {
-    const items = extractListItems(value);
-    const fallback = formatDetailValue(value);
+    const rawItems = extractListItems(value);
+    const items = rawItems.map(function(item) {
+      var s = String(item || '').trim();
+      return s === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : s;
+    });
+    let fallback = formatDetailValue(value);
+    if (fallback === 'เครื่องดื่ม') fallback = 'เครื่องดื่ม (ยังไม่ได้ระบุ)';
     const accentMap = {
       blue: 'detail-pill-blue',
       sky: 'detail-pill-sky',
@@ -4649,7 +4654,8 @@
       var headers = ['รหัส', 'ชื่อร้าน', 'เจ้าของ', 'โทร', 'อำเภอ', 'ที่อยู่', 'ประเภทธุรกิจ', 'หมวดหมู่สินค้า/บริการ', 'ร้านค้าในโครงการ', 'สถานะ', 'วันที่', 'ประวัติร้านค้า'];
       var aoa = [headers];
       rows.forEach(function(item) {
-        var productCategories = String(item.ProductCategory || item.productCategory || '');
+        var rawCats = extractListItems(item.ProductCategory || item.productCategory || '');
+        var productCategories = rawCats.map(function(c) { return c === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : c; }).join(', ');
         var inProject = (item.InProject === true || item.InProject === 1 || item.InProject === '1') ? '✓' : '';
         aoa.push([
           item.LamproundID || '',
@@ -5261,6 +5267,26 @@
         inProjEl.value = '0';
       } else {
         inProjEl.value = '';
+      }
+    }
+
+    var bevSelect = form.querySelector('[name="beverage_alcohol_type"]');
+    if (bevSelect) {
+      var catRaw = item.ProductCategory || item.productCategory || '';
+      var catList = extractListItems(catRaw);
+      var hasAlcohol = catList.some(function(c) {
+        var str = String(c || '');
+        return str.indexOf('มีแอลกอฮอล์') !== -1 && str.indexOf('ไม่มีแอลกอฮอล์') === -1;
+      });
+      var hasNonAlcohol = catList.some(function(c) {
+        return String(c || '').indexOf('ไม่มีแอลกอฮอล์') !== -1;
+      });
+      if (hasAlcohol) {
+        bevSelect.value = 'มีแอลกอฮอล์';
+      } else if (hasNonAlcohol) {
+        bevSelect.value = 'ไม่มีแอลกอฮอล์';
+      } else {
+        bevSelect.value = '';
       }
     }
 
@@ -5945,7 +5971,7 @@
     if (event.target.id === 'modal-edit') closeEditModal();
   }
 
-  function submitEdit() {
+    function submitEdit() {
     if (editTargetIndex === null || _isEditing) return;
     var item = recordsData[editTargetIndex];
     if (!item || !item.BackendId || !canEditRecord(item)) {
@@ -5965,6 +5991,30 @@
     var els = form.elements;
     for (var i=0; i<els.length; i++) { if (els[i].name) data[els[i].name] = els[i].value; }
     data.phone = cleanPhoneValue(data.phone);
+
+    var existingCats = extractListItems(item.ProductCategory || item.productCategory || '');
+    var bevIdx = -1;
+    for (var ci = 0; ci < existingCats.length; ci++) {
+      if (normalizeProductCategory(existingCats[ci]) === 'เครื่องดื่ม') {
+        bevIdx = ci;
+        break;
+      }
+    }
+    var selectedAlc = String(data.beverage_alcohol_type || '').trim();
+    if (selectedAlc) {
+      var newBevLabel = 'เครื่องดื่ม (' + selectedAlc + ')';
+      if (bevIdx !== -1) {
+        existingCats[bevIdx] = newBevLabel;
+      } else {
+        existingCats.push(newBevLabel);
+      }
+    } else {
+      if (bevIdx !== -1) {
+        existingCats[bevIdx] = 'เครื่องดื่ม';
+      }
+    }
+    data.product_category = existingCats;
+
     data.products = editProducts.map(function(item, index) {
       return {
         productName: String(item.productName || '').trim(),

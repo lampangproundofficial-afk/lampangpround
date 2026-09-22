@@ -541,7 +541,7 @@ export async function handleUpdateRecord(request: Request, env: Env): Promise<Re
       if (header === 'Phone') {
         next = phoneValue;
       } else if (header === 'ProductCategory' || header === 'SalesChannel') {
-        next = dataObj[key] ? JSON.stringify(dataObj[key]) : str(existing[columnOf(header)]);
+        next = dataObj[key] ? JSON.stringify(parseJsonArray(dataObj[key])) : str(existing[columnOf(header)]);
       } else if (header === 'ImageShop' || header === 'ImageProduct' || header === 'ImageActivity') {
         const incoming = dataObj[key];
         next = incoming !== undefined ? await resolveImageRef(env, backendId, incoming, key) : str(existing[columnOf(header)]);
