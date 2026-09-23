@@ -27,7 +27,7 @@ const SECTION_HEAD_SPACE_ABOVE = 10;
 const PRODUCT_ROW_H = 56;
 /** ความสูงแถวหัวตารางสินค้า */
 const PRODUCT_HEADER_H = 24;
-/** จำนวนแถวสินค้าสูงสุดต่อหน้า */
+/** จำนวนรูปสินค้าที่โหลดพร้อมกัน */
 const PRODUCT_ROWS_PER_PAGE = 6;
 /** ช่องว่างระหว่างรูปในกริดแกลเลอรี */
 const GALLERY_GAP = 16;
@@ -39,8 +39,6 @@ const GALLERY_HEAD_RESERVE = 40;
 const TABLE_CELL_FONT_SIZE = 10.5;
 /** ระยะบรรทัดข้อความในเซลตารางสินค้า */
 const CELL_LINE_H = 14;
-/** จำนวนบรรทัดสูงสุดต่อเซล (เกินตัดด้วย …) */
-const ROW_MAX_LINES = 4;
 const TABLE_BORDER = rgb(0xb4 / 255, 0xc2 / 255, 0xd2 / 255);
 const TABLE_HEADER_BG = rgb(0xdb / 255, 0xea / 255, 0xfe / 255);
 const LABEL_BG = rgb(0xf8 / 255, 0xfa / 255, 0xfc / 255);
@@ -272,9 +270,8 @@ function galleryGridConfig(count: number): { rows: number; cols: number } {
   return { rows: 3, cols: 3 };
 }
 
-/** ตัดคำขึ้นบรรทัดใหม่แบบรายอักขระ (ภาษาไทยไม่มีช่องว่างคั่นคำ)
- *  คืนไม่เกิน maxLines บรรทัด — เกินตัดด้วย … ที่บรรทัดสุดท้าย */
-function wrapLines(value: string, font: PDFFont, size: number, maxWidth: number, maxLines: number): string[] {
+/** ตัดคำขึ้นบรรทัดใหม่แบบรายอักขระ (ภาษาไทยไม่มีช่องว่างคั่นคำ) */
+function wrapLines(value: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const rawLines: string[] = [];
   let current = '';
   for (const ch of String(value ?? '')) {
@@ -287,14 +284,7 @@ function wrapLines(value: string, font: PDFFont, size: number, maxWidth: number,
     }
   }
   if (current !== '' || rawLines.length === 0) rawLines.push(current);
-  if (rawLines.length <= maxLines) return rawLines;
-  const out = rawLines.slice(0, maxLines);
-  let last = out[maxLines - 1];
-  while (last.length > 1 && font.widthOfTextAtSize(last + '…', size) > maxWidth) {
-    last = last.slice(0, -1);
-  }
-  out[maxLines - 1] = last + '…';
-  return out;
+  return rawLines;
 }
 
 function truncate(text: string, font: PDFFont, size: number, maxWidth: number): string {
@@ -406,7 +396,7 @@ export async function exportShopPdfNative(
   drawSectionHeading('ข้อมูลธุรกิจ');
   drawLabelValueTable(bizRows);
 
-  // ── Products table (replaceProductsTable_: 6 แถว/หน้า, header ตรงบรรทัด 2632) ──
+  // ── Products table ──
   // ลำดับคอลัมน์: ลำดับ | รูปภาพ | ชื่อสินค้า | หมวดหมู่ | รายละเอียด | ราคา
   // จับคู่รูปกับสินค้าตาม SortOrder (logic เดียวกับ findProductGalleryImageUrl ฝั่ง frontend)
   const looseGallery = productGallerySorted(data.gallery.filter((g) => g.ImageRole === 'product' || g.ImageRole === 'gallery'));
@@ -415,38 +405,31 @@ export async function exportShopPdfNative(
     if (byOrder) return byOrder;
     return looseGallery[globalIndex] ?? null;
   };
+  const cols = PRODUCT_COL_WIDTHS;
+  const total = cols.reduce((a, b) => a + b, 0);
+  const startX = MARGIN + (CONTENT_W - total) / 2;
+  const drawProductHeader = (continued = false): void => {
+    drawSectionHeading(continued ? 'สรุปรายการสินค้า (ต่อ)' : 'สรุปรายการสินค้า');
+    const headerRow = ['ลำดับ', 'รูปภาพ', 'ชื่อสินค้า', 'หมวดหมู่', 'รายละเอียด', 'ราคา'];
+    let x = startX;
+    for (let i = 0; i < cols.length; i++) {
+      page.drawRectangle({ x, y: y - PRODUCT_HEADER_H, width: cols[i], height: PRODUCT_HEADER_H, borderColor: TABLE_BORDER, borderWidth: 0.75, color: TABLE_HEADER_BG });
+      text(headerRow[i], x + 4, y - PRODUCT_HEADER_H + 7, TABLE_CELL_FONT_SIZE, bold, TEXT_BODY);
+      x += cols[i];
+    }
+    y -= PRODUCT_HEADER_H;
+  };
+  let productTableStarted = false;
   for (let start = 0; start < data.products.length; start += PRODUCT_ROWS_PER_PAGE) {
-    // [polish] วางแผนแถวล่วงหน้า: wrap ข้อความสูงสุด ROW_MAX_LINES บรรทัด
-    // แถวสูงตามเนื้อหาจริง (ขั้นต่ำ PRODUCT_ROW_H) — ไม่ตัดข้อมูลทิ้งแบบ ellipsis
-    const cols = PRODUCT_COL_WIDTHS;
-    const total = cols.reduce((a, b) => a + b, 0);
-    const startX = MARGIN + (CONTENT_W - total) / 2;
-    const headerH = PRODUCT_HEADER_H;
     const pageItems = data.products.slice(start, start + PRODUCT_ROWS_PER_PAGE);
     const rowPlans = pageItems.map((item, k) => {
       const raw = [String(start + k + 1), '', item.ProductName || NOT_SPECIFIED, item.ProductCategory || NOT_SPECIFIED, item.Description || NOT_SPECIFIED, item.Price || NOT_SPECIFIED];
       const wrapped = raw.map((c, i) =>
-        i === 1 ? [c] : wrapLines(c, regular, TABLE_CELL_FONT_SIZE, cols[i] - 8, ROW_MAX_LINES)
+        i === 1 ? [c] : wrapLines(c, regular, TABLE_CELL_FONT_SIZE, cols[i] - 8)
       );
-      const maxLines = Math.max(...wrapped.map((w) => w.length));
-      return { item, wrapped, rowH: Math.max(PRODUCT_ROW_H, maxLines * CELL_LINE_H + 16) };
+      return { item, wrapped };
     });
-    const bodyH = rowPlans.reduce((sum, p) => sum + p.rowH, 0);
-    // [P1] จองพื้นที่ตามจำนวนแถวจริงของหน้านี้ (ไม่ใช่เหมา 6 แถว) กันหน้าว่างครึ่งหน้า
-    // กันหัวข้อค้างท้ายหน้า: เช็คที่ทั้งก้อนก่อนวาดหัวข้อ (ไม่ใช่หลังวาด)
-    if (start > 0) newPage();
-    else ensureSpace(SECTION_HEAD_SPACE_ABOVE + 22 + headerH + bodyH + 8);
-    drawSectionHeading('สรุปรายการสินค้า');
-    const headerRow = ['ลำดับ', 'รูปภาพ', 'ชื่อสินค้า', 'หมวดหมู่', 'รายละเอียด', 'ราคา'];
-    let x = startX;
-    let rowTop = y;
-    for (let i = 0; i < cols.length; i++) {
-      page.drawRectangle({ x, y: rowTop - headerH, width: cols[i], height: headerH, borderColor: TABLE_BORDER, borderWidth: 0.75, color: TABLE_HEADER_BG });
-      text(headerRow[i], x + 4, rowTop - headerH + 7, TABLE_CELL_FONT_SIZE, bold, TEXT_BODY);
-      x += cols[i];
-    }
-    y -= headerH;
-    // [P2 optimize] ฝังรูปทั้งหน้าพร้อมกัน ไม่รอทีละใบ
+    // ฝังรูปทีละชุด ไม่รอทีละใบ
     const thumbs = await Promise.all(
       rowPlans.map(async (plan, k) => {
         const gItem = galleryForProduct(start + k, Number(plan.item.SortOrder ?? 0));
@@ -455,42 +438,55 @@ export async function exportShopPdfNative(
     );
     for (let idx = 0; idx < rowPlans.length; idx++) {
       const plan = rowPlans[idx];
-      const rowH = plan.rowH;
-      rowTop = y;
-      x = startX;
       const thumb = thumbs[idx];
-      for (let i = 0; i < cols.length; i++) {
-        page.drawRectangle({ x, y: rowTop - rowH, width: cols[i], height: rowH, borderColor: TABLE_BORDER, borderWidth: 0.75, color: WHITE });
-        if (i === 1) {
-          if (thumb) {
-            const maxW = cols[i] - 8;
-            const maxH = rowH - 4;
-            const scale = Math.min(maxW / thumb.width, maxH / thumb.height);
-            const w = thumb.width * scale;
-            const h = thumb.height * scale;
-            page.drawImage(thumb, {
-              x: x + (cols[i] - w) / 2,
-              y: rowTop - rowH + (rowH - h) / 2,
-              width: w,
-              height: h,
-            });
-          } else {
-            // [P3] สินค้าไม่มีรูป: พิมพ์กำกับจางกลางเซลแทนช่องว่างเปล่า
-            const t = NO_IMAGE;
-            const tw = regular.widthOfTextAtSize(t, 9);
-            text(t, x + (cols[i] - tw) / 2, rowTop - rowH / 2 - 3, 9, regular, TEXT_CAPTION);
-          }
-        } else {
-          // ข้อความหลายบรรทัดจัดกลางแนวตั้ง (จุดศูนย์เดียวกับบรรทัดเดี่ยวเดิม)
-          const lines = plan.wrapped[i];
-          const firstBase = rowTop - rowH / 2 + ((lines.length - 1) * CELL_LINE_H) / 2 - 3;
-          lines.forEach((line, li) => {
-            text(line, x + 4, firstBase - li * CELL_LINE_H, TABLE_CELL_FONT_SIZE, regular, TEXT_BODY);
-          });
+      let lineOffset = 0;
+      const totalLines = Math.max(...plan.wrapped.map((lines) => lines.length));
+      while (lineOffset < totalLines) {
+        if (!productTableStarted) {
+          ensureSpace(SECTION_HEAD_SPACE_ABOVE + 22 + PRODUCT_HEADER_H + PRODUCT_ROW_H);
+          drawProductHeader();
+          productTableStarted = true;
         }
-        x += cols[i];
+        if (y - PRODUCT_ROW_H < MARGIN) {
+          newPage();
+          drawProductHeader(true);
+        }
+        const linesOnPage = Math.max(1, Math.floor((y - MARGIN - 16) / CELL_LINE_H));
+        const lineCount = Math.min(totalLines - lineOffset, linesOnPage);
+        const rowH = Math.max(PRODUCT_ROW_H, lineCount * CELL_LINE_H + 16);
+        const rowTop = y;
+        let x = startX;
+        for (let i = 0; i < cols.length; i++) {
+          page.drawRectangle({ x, y: rowTop - rowH, width: cols[i], height: rowH, borderColor: TABLE_BORDER, borderWidth: 0.75, color: WHITE });
+          if (i === 1 && lineOffset === 0) {
+            if (thumb) {
+              const maxW = cols[i] - 8;
+              const maxH = rowH - 4;
+              const scale = Math.min(maxW / thumb.width, maxH / thumb.height);
+              const w = thumb.width * scale;
+              const h = thumb.height * scale;
+              page.drawImage(thumb, {
+                x: x + (cols[i] - w) / 2,
+                y: rowTop - rowH + (rowH - h) / 2,
+                width: w,
+                height: h,
+              });
+            } else {
+              const tw = regular.widthOfTextAtSize(NO_IMAGE, 9);
+              text(NO_IMAGE, x + (cols[i] - tw) / 2, rowTop - rowH / 2 - 3, 9, regular, TEXT_CAPTION);
+            }
+          } else if (i !== 1) {
+            const lines = plan.wrapped[i].slice(lineOffset, lineOffset + lineCount);
+            const firstBase = rowTop - rowH / 2 + ((lines.length - 1) * CELL_LINE_H) / 2 - 3;
+            lines.forEach((line, li) => {
+              text(line, x + 4, firstBase - li * CELL_LINE_H, TABLE_CELL_FONT_SIZE, regular, TEXT_BODY);
+            });
+          }
+          x += cols[i];
+        }
+        y -= rowH;
+        lineOffset += lineCount;
       }
-      y -= rowH;
     }
   }
 
