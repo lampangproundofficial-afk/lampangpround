@@ -3870,11 +3870,9 @@
   function buildChipGroup(label, value, accent = 'blue') {
     const rawItems = extractListItems(value);
     const items = rawItems.map(function(item) {
-      var s = String(item || '').trim();
-      return s === 'เครื่องดื่ม' ? 'เครื่องดื่ม (ยังไม่ได้ระบุ)' : s;
-    });
+      return String(item || '').trim();
+    }).filter(Boolean);
     let fallback = formatDetailValue(value);
-    if (fallback === 'เครื่องดื่ม') fallback = 'เครื่องดื่ม (ยังไม่ได้ระบุ)';
     const accentMap = {
       blue: 'detail-pill-blue',
       sky: 'detail-pill-sky',
@@ -5294,15 +5292,24 @@
       cb.checked = isChecked;
     });
 
-    var bevSelect = form.querySelector('[name="beverage_alcohol_type"]');
-    if (bevSelect) {
-      var hasAlcohol = catList.some(function(c) {
-        var str = String(c || '');
-        return str.indexOf('มีแอลกอฮอล์') !== -1 && str.indexOf('ไม่มีแอลกอฮอล์') === -1;
+    var bevRadios = form.querySelectorAll('input[name="beverage_alcohol_type"]');
+    var bevSelect = form.querySelector('select[name="beverage_alcohol_type"]');
+    var hasAlcohol = catList.some(function(c) {
+      var str = String(c || '');
+      return str.indexOf('มีแอลกอฮอล์') !== -1 && str.indexOf('ไม่มีแอลกอฮอล์') === -1;
+    });
+    var hasNonAlcohol = catList.some(function(c) {
+      return String(c || '').indexOf('ไม่มีแอลกอฮอล์') !== -1;
+    });
+    if (bevRadios && bevRadios.length) {
+      bevRadios.forEach(function(r) {
+        if (hasAlcohol) {
+          r.checked = (r.value === 'มีแอลกอฮอล์');
+        } else {
+          r.checked = (r.value === 'ไม่มีแอลกอฮอล์');
+        }
       });
-      var hasNonAlcohol = catList.some(function(c) {
-        return String(c || '').indexOf('ไม่มีแอลกอฮอล์') !== -1;
-      });
+    } else if (bevSelect) {
       if (hasAlcohol) {
         bevSelect.value = 'มีแอลกอฮอล์';
       } else if (hasNonAlcohol) {
@@ -6022,7 +6029,8 @@
       selectedCats.push(el.value);
     });
 
-    var selectedAlc = String(data.beverage_alcohol_type || '').trim();
+    var selectedAlcRadio = form.querySelector('input[name="beverage_alcohol_type"]:checked');
+    var selectedAlc = selectedAlcRadio ? String(selectedAlcRadio.value || '').trim() : String(data.beverage_alcohol_type || '').trim();
     var finalCats = selectedCats.map(function(cat) {
       if (cat === 'เครื่องดื่ม') {
         return selectedAlc ? ('เครื่องดื่ม (' + selectedAlc + ')') : 'เครื่องดื่ม';
