@@ -519,6 +519,9 @@
 
     var form = document.getElementById('mainForm');
     if (form) form.reset();
+    invalidateMapUrlResolve();
+    resetCreateMapPreview();
+    setGpsLoadingState(false);
     toggleBeverageAlcoholOptions();
     clearFormDraft();
     renderProductList();
@@ -1599,11 +1602,19 @@
     _currentEditProductEditIndex = null;
   }
 
+  function syncEditProductModalMode() {
+    const title = document.getElementById('edit-product-modal-title');
+    const subtitle = document.getElementById('edit-product-modal-subtitle');
+    if (title) title.textContent = _isEditProductEditing ? 'แก้ไขรายการสินค้า' : 'เพิ่มรายการสินค้า';
+    if (subtitle) subtitle.textContent = _isEditProductEditing ? 'แก้ไขข้อมูลสินค้าในรายการนี้' : 'เพิ่มสินค้าให้รายการที่กำลังแก้ไข';
+  }
+
   function openEditProductModal() {
     const modal = document.getElementById('modal-edit-product');
     const content = document.getElementById('modal-edit-product-content');
     if (!modal || !content) return;
     clearEditProductModal();
+    syncEditProductModalMode();
     modal.classList.remove('opacity-0', 'pointer-events-none');
     content.classList.remove('scale-95');
     document.body.style.overflow = 'hidden';
@@ -1684,6 +1695,7 @@
     
     _isEditProductEditing = true;
     _currentEditProductEditIndex = index;
+    syncEditProductModalMode();
     
     setTimeout(function() {
       var nameEl = document.getElementById('edit-product-name-input');
@@ -2401,13 +2413,38 @@
   }
 
   var mapUrlResolveDebounceTimer = null;
+  var mapUrlResolveRequestToken = 0;
+
+  function invalidateMapUrlResolve() {
+    mapUrlResolveRequestToken++;
+    if (mapUrlResolveDebounceTimer) clearTimeout(mapUrlResolveDebounceTimer);
+    mapUrlResolveDebounceTimer = null;
+  }
+
+  function resetCreateMapPreview() {
+    var preview = document.getElementById('gps-map-preview');
+    var coords = document.getElementById('gps-map-coords');
+    var link = document.getElementById('gps-map-link');
+    var iframe = document.getElementById('gps-map-iframe');
+    var clearBtn = document.getElementById('btn-clear-map-url');
+    if (preview) preview.classList.add('hidden');
+    if (coords) coords.textContent = '';
+    if (link) link.removeAttribute('href');
+    if (iframe) iframe.removeAttribute('src');
+    if (clearBtn) clearBtn.classList.add('hidden');
+  }
+
   function resolveMapUrlAsync(urlStr, isEdit) {
-    if (mapUrlResolveDebounceTimer) {
-      clearTimeout(mapUrlResolveDebounceTimer);
-      mapUrlResolveDebounceTimer = null;
-    }
+    invalidateMapUrlResolve();
+    var requestToken = mapUrlResolveRequestToken;
     var cleanUrl = String(urlStr || '').trim();
     if (!cleanUrl) return;
+
+    function isCurrentRequest() {
+      var input = document.getElementById(isEdit ? 'edit_map_url_input' : 'map_url_input');
+      return requestToken === mapUrlResolveRequestToken &&
+        !!input && String(input.value || '').trim() === cleanUrl;
+    }
 
     var preview = isEdit ? document.getElementById('edit-map-preview') : document.getElementById('gps-map-preview');
     var coordsEl = isEdit ? document.getElementById('edit-map-coords') : document.getElementById('gps-map-coords');
@@ -2418,6 +2455,7 @@
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(res) {
+            if (!isCurrentRequest()) return;
             if (res && res.success && res.lat && res.lng) {
               if (isEdit) {
                 var form = document.getElementById('editForm');
@@ -2452,6 +2490,7 @@
             }
           })
           .withFailureHandler(function() {
+            if (!isCurrentRequest()) return;
             if (coordsEl && coordsEl.textContent === 'กำลังดึงพิกัดจากลิงก์...') {
               if (preview) preview.classList.add('hidden');
             }
@@ -2462,6 +2501,8 @@
   }
 
   function handleMapUrlInput(value, isEdit) {
+    invalidateMapUrlResolve();
+    if (!isEdit) setGpsLoadingState(false);
     var coords = parseCoordinatesFromUrl(value);
     if (isEdit) {
       var form = document.getElementById('editForm');
@@ -2504,8 +2545,7 @@
       } else if (!value.trim()) {
         if (lat) lat.value = '';
         if (lon) lon.value = '';
-        var mapPreview2 = document.getElementById('gps-map-preview');
-        if (mapPreview2) mapPreview2.classList.add('hidden');
+        resetCreateMapPreview();
         saveFormDraft();
       }
     }
@@ -2554,8 +2594,13 @@
       alert('เบราว์เซอร์ไม่รองรับ GPS');
       return;
     }
+    invalidateMapUrlResolve();
+    var requestToken = mapUrlResolveRequestToken;
+    var editToken = _editRequestToken;
+    var targetIndex = editTargetIndex;
     navigator.geolocation.getCurrentPosition(
       function(pos) {
+        if (requestToken !== mapUrlResolveRequestToken || editToken !== _editRequestToken || targetIndex !== editTargetIndex) return;
         var form = document.getElementById('editForm');
         if (!form) return;
         var latVal = pos.coords.latitude.toFixed(6);
@@ -2569,10 +2614,20 @@
         updateEditMapPreview();
       },
       function() {
+        if (requestToken !== mapUrlResolveRequestToken || editToken !== _editRequestToken || targetIndex !== editTargetIndex) return;
         alert('ไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาตการเข้าถึง GPS');
       },
       { timeout: 15000 }
     );
+  }
+
+  function setGpsLoadingState(loading) {
+    var btn = document.getElementById('btn-gps');
+    var btnContent = document.getElementById('gps-btn-content');
+    var btnSpinner = document.getElementById('gps-btn-spinner');
+    if (btn) btn.disabled = loading;
+    if (btnContent) btnContent.classList.toggle('hidden', loading);
+    if (btnSpinner) btnSpinner.classList.toggle('hidden', !loading);
   }
 
   function getLocation() {
@@ -2580,15 +2635,13 @@
       alert('เบราว์เซอร์ไม่รองรับ GPS');
       return;
     }
-    var btn = document.getElementById('btn-gps');
-    var btnContent = document.getElementById('gps-btn-content');
-    var btnSpinner = document.getElementById('gps-btn-spinner');
-    if (btn) btn.disabled = true;
-    if (btnContent) btnContent.classList.add('hidden');
-    if (btnSpinner) btnSpinner.classList.remove('hidden');
+    invalidateMapUrlResolve();
+    var requestToken = mapUrlResolveRequestToken;
+    setGpsLoadingState(true);
 
     navigator.geolocation.getCurrentPosition(
       function(pos) {
+        if (requestToken !== mapUrlResolveRequestToken) return;
         var lat = document.getElementById('latitude');
         var lon = document.getElementById('longitude');
         var latVal = pos.coords.latitude.toFixed(6);
@@ -2610,17 +2663,14 @@
         if (mapIframe) mapIframe.src = 'https://maps.google.com/maps?q=' + latVal + ',' + lonVal + '&z=15&output=embed';
         if (mapPreview) mapPreview.classList.remove('hidden');
 
-        if (btn) btn.disabled = false;
-        if (btnContent) btnContent.classList.remove('hidden');
-        if (btnSpinner) btnSpinner.classList.add('hidden');
+        setGpsLoadingState(false);
         if (window.lucide) lucide.createIcons();
         saveFormDraft();
       },
       function() {
+        if (requestToken !== mapUrlResolveRequestToken) return;
         alert('ไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาตการเข้าถึง GPS');
-        if (btn) btn.disabled = false;
-        if (btnContent) btnContent.classList.remove('hidden');
-        if (btnSpinner) btnSpinner.classList.add('hidden');
+        setGpsLoadingState(false);
       },
       { timeout: 15000 }
     );
@@ -3064,6 +3114,9 @@
     document.body.style.overflow = '';
     if (action === 'new') {
       document.getElementById('mainForm').reset();
+      invalidateMapUrlResolve();
+      resetCreateMapPreview();
+      setGpsLoadingState(false);
       toggleBeverageAlcoholOptions();
       currentStep = 1;
       updateStepUI();
@@ -3146,14 +3199,14 @@
   }
 
   // ========== RECORDS MANAGEMENT ==========
-  function loadRecords() {
+  function loadRecords(onLoaded, onFailed, forceRefresh) {
     const loading = document.getElementById('list-loading');
     const empty = document.getElementById('list-empty');
     const list = document.getElementById('data-list');
     const sectionList = document.getElementById('section-list');
     const requestToken = ++_listRequestToken;
 
-    var cachedRecords = lpClientCacheReadRecords();
+    var cachedRecords = forceRefresh ? null : lpClientCacheReadRecords();
     if (cachedRecords) {
       if (requestToken !== _listRequestToken) return;
       recordsData = cachedRecords;
@@ -3167,6 +3220,7 @@
         renderDashboard();
       }
       checkDeepLinkRoute_();
+      if (typeof onLoaded === 'function') onLoaded(recordsData);
       return;
     }
 
@@ -3189,12 +3243,14 @@
           renderDashboard();
         }
         checkDeepLinkRoute_();
+        if (typeof onLoaded === 'function') onLoaded(recordsData);
       })
       .withFailureHandler(() => {
         if (requestToken !== _listRequestToken) return;
         loading.classList.add('hidden');
         if(recordsData.length === 0) empty.classList.remove('hidden');
         updateSearchUi();
+        if (typeof onFailed === 'function') onFailed();
       })
       .getRecords();
   }
@@ -5096,17 +5152,17 @@
     var renderToken = ++_dashboardRenderToken;
 
     var targetRecords = Array.isArray(filteredRecordsData) ? filteredRecordsData : recordsData;
+    var kpiTotal = document.getElementById('kpi-total');
+    if (kpiTotal) kpiTotal.textContent = recordsData.length;
 
     if (targetRecords.length === 0) {
       if (chartsArea) chartsArea.classList.add('hidden');
       if (loadingArea) loadingArea.classList.add('hidden');
       if (errorArea) errorArea.classList.add('hidden');
       if (emptyArea) emptyArea.classList.remove('hidden');
-      var kpiTotalEmpty = document.getElementById('kpi-total');
       var kpiTypesEmpty = document.getElementById('kpi-types');
       var kpiLevelsEmpty = document.getElementById('kpi-levels');
       var kpiStatusesEmpty = document.getElementById('kpi-statuses');
-      if (kpiTotalEmpty) kpiTotalEmpty.textContent = '0';
       if (kpiTypesEmpty) kpiTypesEmpty.textContent = '0';
       if (kpiLevelsEmpty) kpiLevelsEmpty.textContent = '0';
       if (kpiStatusesEmpty) kpiStatusesEmpty.textContent = '0';
@@ -5151,11 +5207,9 @@
     var channelCounts = countByMultiField(targetRecords, 'SalesChannel');
     var catCounts = countByProductCategory(targetRecords);
 
-    var kpiTotal = document.getElementById('kpi-total');
     var kpiTypes = document.getElementById('kpi-types');
     var kpiLevels = document.getElementById('kpi-levels');
     var kpiStatuses = document.getElementById('kpi-statuses');
-    if (kpiTotal) kpiTotal.textContent = targetRecords.length;
     if (kpiTypes) kpiTypes.textContent = Object.keys(typeCounts).length;
     if (kpiLevels) kpiLevels.textContent = Object.keys(levelCounts).length;
     if (kpiStatuses) kpiStatuses.textContent = Object.keys(statusCounts).length;
@@ -5756,17 +5810,17 @@
     google.script.run
       .withSuccessHandler(function(res) {
         if (requestToken !== _editGalleryRequestToken || editTargetIndex === null) return;
-        if (!res || !res.success) {
+        if (!res || !res.success || !res.record) {
           setEditGalleryLoadingState('โหลดรูปไม่สำเร็จ');
           return;
         }
-        renderEditExistingGallery(res.gallery || []);
+        renderEditExistingGallery(res.record && res.record.gallery || []);
       })
       .withFailureHandler(function() {
         if (requestToken !== _editGalleryRequestToken || editTargetIndex === null) return;
         setEditGalleryLoadingState('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
       })
-      .getShopRecord({ backendId: backendId, token: _token });
+      .getRecordDetail({ backendId: backendId, token: _token });
   }
 
   function processEditGalleryDeletes(shopId, done, fail) {
@@ -6088,11 +6142,33 @@
             lpClientCacheClearRecords();
             lpClientCacheClearDetail(item.BackendId);
           } catch (e) { }
-          closeEditModal();
-          loadRecords();
-          if (detailTargetIndex !== null && recordsData[detailTargetIndex] && recordsData[detailTargetIndex].BackendId === item.BackendId) {
-            openDetailModal(detailTargetIndex);
+          var detailBackendId = detailTargetIndex !== null && recordsData[detailTargetIndex] &&
+            recordsData[detailTargetIndex].BackendId === item.BackendId ? item.BackendId : null;
+          var detailRequestToken = _detailRequestToken;
+          if (detailBackendId) {
+            document.getElementById('detail-id').textContent = '';
+            document.getElementById('detail-title').textContent = 'กำลังโหลดข้อมูลล่าสุด...';
+            document.getElementById('detail-subtitle').textContent = '';
+            document.getElementById('detail-phone-hero').classList.add('hidden');
+            document.getElementById('detail-body').innerHTML = '<div role="status" class="text-center text-slate-600 py-8">กำลังโหลดข้อมูลล่าสุด...</div>';
+            document.getElementById('detail-mobile-actions').innerHTML = '';
           }
+          closeEditModal();
+          loadRecords(function(freshRecords) {
+            if (!detailBackendId || detailTargetIndex === null || detailRequestToken !== _detailRequestToken) return;
+            var freshIndex = freshRecords.findIndex(function(record) {
+              return record && record.BackendId === detailBackendId;
+            });
+            if (freshIndex >= 0) {
+              openDetailModal(freshIndex);
+            } else {
+              closeDetailModal();
+              showToast('บันทึกแล้ว แต่ไม่พบรายการในข้อมูลล่าสุด กรุณาลองรีเฟรชรายการ', 'error');
+            }
+          }, function() {
+            if (detailBackendId && detailRequestToken === _detailRequestToken) closeDetailModal();
+            showToast('บันทึกแล้ว แต่โหลดรายการใหม่ไม่สำเร็จ กรุณาลองรีเฟรชรายการ', 'error');
+          }, true);
           showToast('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success');
         }, function(message) {
           _isEditing = false;
@@ -6216,6 +6292,7 @@ export const __legacyGlobals = {
   syncEditProductSummaryFields: typeof syncEditProductSummaryFields === 'function' ? syncEditProductSummaryFields : undefined,
   renderEditProductList: typeof renderEditProductList === 'function' ? renderEditProductList : undefined,
   clearEditProductModal: typeof clearEditProductModal === 'function' ? clearEditProductModal : undefined,
+  syncEditProductModalMode: typeof syncEditProductModalMode === 'function' ? syncEditProductModalMode : undefined,
   normalizeEditProductItems: typeof normalizeEditProductItems === 'function' ? normalizeEditProductItems : undefined,
   buildProductDetailBody: typeof buildProductDetailBody === 'function' ? buildProductDetailBody : undefined,
   buildProductCardsSection: typeof buildProductCardsSection === 'function' ? buildProductCardsSection : undefined,
@@ -6231,6 +6308,10 @@ export const __legacyGlobals = {
   toJpegFileName: typeof toJpegFileName === 'function' ? toJpegFileName : undefined,
   compressImageFileForUpload: typeof compressImageFileForUpload === 'function' ? compressImageFileForUpload : undefined,
   dataURLToBlob_: typeof dataURLToBlob_ === 'function' ? dataURLToBlob_ : undefined,
+  invalidateMapUrlResolve: typeof invalidateMapUrlResolve === 'function' ? invalidateMapUrlResolve : undefined,
+  resetCreateMapPreview: typeof resetCreateMapPreview === 'function' ? resetCreateMapPreview : undefined,
+  isCurrentRequest: typeof isCurrentRequest === 'function' ? isCurrentRequest : undefined,
+  setGpsLoadingState: typeof setGpsLoadingState === 'function' ? setGpsLoadingState : undefined,
   getSpecificGalleryLimit: typeof getSpecificGalleryLimit === 'function' ? getSpecificGalleryLimit : undefined,
   getSpecificGalleryRoleCount: typeof getSpecificGalleryRoleCount === 'function' ? getSpecificGalleryRoleCount : undefined,
   updateSpecificGalleryCountLabels: typeof updateSpecificGalleryCountLabels === 'function' ? updateSpecificGalleryCountLabels : undefined,
