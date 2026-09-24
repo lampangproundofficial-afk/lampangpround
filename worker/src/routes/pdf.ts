@@ -16,7 +16,7 @@ const MARGIN = 36;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 const LABEL_W = 180;
 const VALUE_W = 343;
-const PRODUCT_COL_WIDTHS = [34, 108, 116, 78, 62, 125];
+const PRODUCT_COL_WIDTHS = [34, 108, 116, 78, 125, 62];
 const IMAGE_CELL_SIZE = 180;
 /** ระยะเว้น 1 บรรทัดระหว่างหัวข้อหมวดรูปกับรูปภาพ */
 const HEADING_IMAGE_GAP = 12;
@@ -32,7 +32,7 @@ const PRODUCT_ROWS_PER_PAGE = 6;
 /** ช่องว่างระหว่างรูปในกริดแกลเลอรี */
 const GALLERY_GAP = 16;
 /** ความสูงบรรทัดคำบรรยายใต้รูป */
-const GALLERY_CAPTION_H = 18;
+const GALLERY_CAPTION_H = 24;
 /** พื้นที่ขั้นต่ำก่อนหัวข้อหมวดรูป (กันหัวข้อชิดขอบล่างหน้า) */
 const GALLERY_HEAD_RESERVE = 40;
 /** ฟอนต์ข้อความในเซลตารางสินค้า */
