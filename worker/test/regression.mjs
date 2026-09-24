@@ -3,7 +3,7 @@
  *   npm run test:regression            (default env: PDF_NATIVE off → ต้องได้ 501 gate)
  *   PDF_NATIVE=1 npm run test:regression  (รันบน server ที่สั่ง --var PDF_NATIVE:on)
  * ครอบคลุม: Auth/Session/Guest/Permission · CRUD · Products/Gallery/Image storage ·
- *  Shops · Search-list parity · Excel/PDF · GPS · Duplicate/Concurrent · Unauthorized
+ *  Search-list parity · Excel/PDF · GPS · Duplicate/Concurrent · Unauthorized
  */
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
@@ -94,7 +94,6 @@ let guestKey;
 let guestBackendId;
 let galleryId;
 let galleryUrl;
-let shopId;
 
 async function main() {
   console.log(`Regression suite → ${BASE}${PDF_NATIVE ? ' (PDF_NATIVE mode)' : ''}`);
@@ -386,9 +385,10 @@ async function main() {
     assert(buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff, 'JPEG magic bytes');
   });
 
-  await test('getShopGallery (backendId) → เห็นรูปที่อัปโหลด', async () => {
-    const { data } = await rpc('getShopGallery', { backendId: guestBackendId });
-    assert(Array.isArray(data) && data.some((g) => g.GalleryID === galleryId), 'gallery listed');
+  await test('getRecordDetail → เห็นรูปที่อัปโหลดใน gallery', async () => {
+    const { data } = await rpc('getRecordDetail', { backendId: guestBackendId });
+    eq(data.success, true, 'success');
+    assert(Array.isArray(data.record.gallery) && data.record.gallery.some((g) => g.GalleryID === galleryId), 'gallery listed');
   });
 
   await test('softDeleteGalleryImage guest ไม่มี key → ปฏิเสธ', async () => {
@@ -406,8 +406,8 @@ async function main() {
       guestAccessKey: guestKey,
     });
     eq(data.success, true, 'success');
-    const gallery = await rpc('getShopGallery', { backendId: guestBackendId });
-    assert(!gallery.data.some((g) => g.GalleryID === galleryId), 'gone from gallery');
+    const detail = await rpc('getRecordDetail', { backendId: guestBackendId });
+    assert(!detail.data.record.gallery.some((g) => g.GalleryID === galleryId), 'gone from gallery');
   });
 
   await test('uploadGalleryImage ด้วย token เจ้าของ → สำเร็จ', async () => {
@@ -420,83 +420,10 @@ async function main() {
     eq(data.success, true, 'success');
   });
 
-  await test('upsertShopRecord guest → ปฏิเสธ', async () => {
-    const { data } = await rpc('upsertShopRecord', { business_name: 'ร้านซ่อน' });
-    eq(data.success, false, 'success');
-    eq(data.sessionInvalid, true, 'sessionInvalid flag');
-  });
-
-  await test('upsertShopRecord (owner) → สร้าง SHOP-xxx สำเร็จ', async () => {
-    const { data } = await rpc('upsertShopRecord', {
-      token: ownerToken,
-      legacyBackendId: guestBackendId,
-      business_name: 'ร้านข้อมูลเต็ม',
-      owner_name: 'เจ้าของ',
-      phone: '0812345678',
-      products: [{ productName: 'สินค้าร้าน', price: '100', unit: 'ชิ้น' }],
-    });
-    eq(data.success, true, 'success');
-    assert(typeof data.shopId === 'string' && data.shopId.startsWith('SHOP-'), 'shopId');
-    shopId = data.shopId;
-  });
-
-  await test('getShopRecord → shop + products + gallery (รวม legacy parity)', async () => {
-    const { data } = await rpc('getShopRecord', { shopId });
-    eq(data.success, true, 'success');
-    assert(data.shop && String(data.shop.ShopID || data.shop.shop_id || '') !== '', 'shop');
-    assert(Array.isArray(data.products) && data.products.length === 3, 'products = SHOP(1) + legacy(2)');
-    assert(Array.isArray(data.gallery), 'gallery array');
-  });
-
-  await test('getShopRecord ด้วย legacyBackendId → หาร้านเดิมได้', async () => {
-    const { data } = await rpc('getShopRecord', { legacyBackendId: guestBackendId });
-    eq(data.success, true, 'success');
-  });
-
-  await test('upsertShopRecord + products → สินค้าถูกแทนที่', async () => {
-    const { data } = await rpc('upsertShopRecord', {
-      token: ownerToken,
-      shopId,
-      products: [
-        { productName: 'สินค้าใหม่ 1', price: '10', unit: 'ชิ้น' },
-        { productName: 'สินค้าใหม่ 2', price: '20', unit: 'ชิ้น' },
-        { productName: 'สินค้าใหม่ 3', price: '30', unit: 'ชิ้น' },
-      ],
-    });
-    eq(data.success, true, 'success');
-    const shop = await rpc('getShopRecord', { shopId });
-    eq(shop.data.products.length, 5, 'products = SHOP(3 แทนที่) + legacy(2) parity');
-  });
-
-  await test('upsertShopRecord + products guest → ปฏิเสธ', async () => {
-    const { data } = await rpc('upsertShopRecord', { shopId, products: [] });
-    eq(data.success, false, 'success');
-  });
-
-  await test('upsertShopRecord ผู้อื่นแก้ร้านของ owner → ไม่มีสิทธิ์ (Q1/Q5)', async () => {
-    const { data } = await rpc('upsertShopRecord', {
-      token: otherToken,
-      shopId,
-      business_name: 'แอบแก้ร้าน',
-    });
-    eq(data.success, false, 'success');
-    assert(String(data.message).includes('ไม่มีสิทธิ์'), 'message');
-  });
-
-  await test('upsertShopRecord guest + allowGuestPdf → ปฏิเสธ (ปิด path Q5)', async () => {
-    const { data } = await rpc('upsertShopRecord', {
-      allowGuestPdf: true,
-      legacyBackendId: guestBackendId,
-      business_name: 'มุดสร้างร้าน',
-    });
-    eq(data.success, false, 'success');
-    eq(data.sessionInvalid, true, 'sessionInvalid flag');
-  });
-
-  await test('admin แก้ร้านของคนอื่นได้ (กติกา admin → ทุกร้าน)', async () => {
+  await test('promote OTHER → admin + login สำเร็จ', async () => {
     const { spawnSync } = await import('node:child_process');
     const persistTo = String(process.env.WRANGLER_PERSIST_TO || '').trim();
-    const persistArg = persistTo ? ` --persist-to "${persistTo.replace(/"/g, '\\\"')}"` : '';
+    const persistArg = persistTo ? ` --persist-to "${persistTo.replace(/"/g, '\\"')}"` : '';
     const promote = spawnSync(
       `npx wrangler d1 execute lampang-pround --local${persistArg} --command "UPDATE users SET role='admin' WHERE username='${OTHER}'"`,
       { cwd: process.cwd(), stdio: 'ignore', shell: true }
@@ -506,12 +433,6 @@ async function main() {
     eq(login.success, true, 'admin login');
     eq(login.user.role, 'admin', 'role=admin');
     otherToken = login.token;
-    const { data } = await rpc('upsertShopRecord', {
-      token: otherToken,
-      shopId,
-      note: 'แก้โดย admin',
-    });
-    eq(data.success, true, 'admin edits any shop');
   });
 
   // ---- Admin User Management Suite ----

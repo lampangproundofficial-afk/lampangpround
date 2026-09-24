@@ -8,11 +8,6 @@ import {
   handleUpdateRecord,
   handleDeleteRecord,
 } from './routes/records';
-import {
-  handleUpsertShopRecord,
-  handleGetShopGallery,
-  handleGetShopRecord,
-} from './routes/shops';
 import { handleUploadGalleryImage, handleSoftDeleteGalleryImage } from './routes/gallery';
 import { handleResolveMapLocationUrl } from './routes/geo';
 import {
@@ -36,6 +31,21 @@ const SESSION_INVALID = {
   message: 'Unknown RPC function',
 };
 
+const D1_WRITE_RPC = new Set([
+  'loginUser',
+  'logoutUser',
+  'registerUser',
+  'saveRecord',
+  'updateRecord',
+  'deleteRecord',
+  'uploadGalleryImage',
+  'softDeleteGalleryImage',
+  'adminUpdateUserRole',
+  'adminDeleteUser',
+  'adminCreateUser',
+  'adminResetPassword',
+]);
+
 /** RPC map — 1:1 กับ google.script.run (payload/response เหมือนเดิมทุกฟังก์ชัน) */
 const RPC: Record<string, (request: Request, env: Env) => Promise<Response>> = {
   loginUser: handleLogin,
@@ -46,9 +56,6 @@ const RPC: Record<string, (request: Request, env: Env) => Promise<Response>> = {
   getRecordDetail: handleGetRecordDetail,
   updateRecord: handleUpdateRecord,
   deleteRecord: handleDeleteRecord,
-  upsertShopRecord: handleUpsertShopRecord,
-  getShopGallery: handleGetShopGallery,
-  getShopRecord: handleGetShopRecord,
   uploadGalleryImage: handleUploadGalleryImage,
   softDeleteGalleryImage: handleSoftDeleteGalleryImage,
   exportShopPdf: handleExportShopPdf,
@@ -106,6 +113,12 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
     const handler = RPC[fn];
     if (!handler) {
       return jsonResponse(SESSION_INVALID, 404, env);
+    }
+    if (env.MIGRATION_READ_ONLY === 'on' && D1_WRITE_RPC.has(fn)) {
+      return jsonResponse({
+        success: false,
+        message: 'ระบบหยุดบันทึกข้อมูลชั่วคราวระหว่างย้ายบัญชี กรุณาลองใหม่ภายหลัง',
+      }, 200, env);
     }
     return handler(request, env);
   }
