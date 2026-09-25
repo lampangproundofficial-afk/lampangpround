@@ -336,21 +336,21 @@ async function main() {
     assert(String(data.message).includes('ไม่มีสิทธิ์'), 'message');
   });
 
-  await test('deleteRecord เจ้าของ → soft delete สำเร็จ', async () => {
+  await test('deleteRecord เจ้าของ → hard delete สำเร็จ', async () => {
     const { data } = await rpc('deleteRecord', {
       token: ownerToken,
       backendId: savedBackendId,
     });
     eq(data.success, true, 'success');
-    assert(String(data.message).includes('ย้ายรายการ'), 'message');
+    assert(String(data.message).includes('ลบรายการ'), 'message');
   });
 
-  await test('soft delete parity: หายจาก getRecords, หลักฐานอยู่ใน detail', async () => {
+  await test('hard delete parity: หายจาก getRecords และ detail', async () => {
     const list = await rpc('getRecords', {});
     assert(!list.data.some((r) => r.BackendId === savedBackendId), 'gone from list');
     const detail = await rpc('getRecordDetail', { backendId: savedBackendId });
     eq(detail.data.success, false, 'detail success=false');
-    assert(String(detail.data.message).includes('ถูกลบ'), 'deleted message');
+    assert(String(detail.data.message).includes('ไม่พบ'), 'missing message');
   });
 
   await test('uploadGalleryImage guest ไม่มี key → ปฏิเสธ', async () => {

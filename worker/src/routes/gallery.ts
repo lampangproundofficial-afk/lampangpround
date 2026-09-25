@@ -133,14 +133,12 @@ export async function handleSoftDeleteGalleryImage(
         return jsonResponse({ success: false, message: 'กรุณาเข้าสู่ระบบก่อนลบรูป' }, 200, env);
       }
     }
-    const now = new Date().toISOString();
     const result = await env.DB.prepare(
-      `UPDATE shop_gallery SET status = 'DELETED', updated_at = ?, updated_by = ?
-       WHERE gallery_id = ?`
+      `DELETE FROM shop_gallery WHERE gallery_id = ?`
     )
-      .bind(now, currentUserName(session), galleryId)
+      .bind(galleryId)
       .run();
-    if (!result.success) throw new Error('soft delete failed');
+    if (!result.success) throw new Error('delete failed');
     return jsonResponse({ success: true, message: 'ลบรูปภาพสำเร็จ' }, 200, env);
   } catch (err) {
     return jsonResponse(

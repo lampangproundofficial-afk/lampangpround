@@ -4372,7 +4372,7 @@
                   <img src="${escapeHtml(qrImageSrc)}" alt="QR Code ${escapeHtml(formatDetailValue(item.BusinessName))}" class="w-36 h-36 object-contain rounded-lg">
                 </div>
                 <p class="text-xs text-slate-500 font-medium">${escapeHtml(formatDetailValue(item.LamproundID))}</p>
-                <button type="button" onclick="downloadQrCodeImage('${encodeURI(qrDownloadUrl)}', '${escapeHtml(qrDownloadFilename)}')" class="detail-qr-download w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-500 to-sky-400 text-white text-xs font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5">
+                <button type="button" onclick="downloadQrCodeImage(${escapeHtml(JSON.stringify(qrDownloadUrl))}, ${escapeHtml(JSON.stringify(qrDownloadFilename))})" class="detail-qr-download w-full py-2 px-3 rounded-xl bg-gradient-to-r from-blue-500 to-sky-400 text-white text-xs font-semibold shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5">
                   <i data-lucide="download" class="w-3.5 h-3.5"></i>
                   <span>ดาวน์โหลด QR Code</span>
                 </button>
@@ -4615,7 +4615,7 @@
           recordsData = recordsData.filter((record) => record.BackendId !== removedBackendId);
           closeDeleteModal();
           applySearchFilter(false);
-          showToast('ย้ายข้อมูลไปยังสถานะลบแล้ว', 'success');
+          showToast('ลบข้อมูลเรียบร้อยแล้ว', 'success');
         } else {
           if (handleSessionInvalidResponse(response)) return;
           alert('เกิดข้อผิดพลาด: ' + (response && response.message ? response.message : 'ไม่ทราบสาเหตุ'));

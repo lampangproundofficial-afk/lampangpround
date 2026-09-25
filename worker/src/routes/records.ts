@@ -160,12 +160,12 @@ async function syncProductGalleryFromItems(
 
   const now = new Date().toISOString();
   const statements = [
-    // markGalleryRowsDeletedByIndexes_ — soft delete role product|gallery
+    // markGalleryRowsDeletedByIndexes_ — ลบรูปเดิม role product|gallery (hard delete)
     env.DB.prepare(
-      `UPDATE shop_gallery SET status = 'DELETED', updated_at = ?, updated_by = ?
+      `DELETE FROM shop_gallery
        WHERE shop_id = ? AND status != 'DELETED'
          AND LOWER(image_role) IN ('product', 'gallery')`
-    ).bind(now, userName, shopId),
+    ).bind(shopId),
   ];
 
   for (const upload of uploads) {
@@ -702,13 +702,12 @@ export async function handleDeleteRecord(request: Request, env: Env): Promise<Re
     const check = checkOwnership(session!, str(existing.created_by), 'ลบ');
     if (!check.ok) return jsonResponse({ success: false, message: check.message }, 200, env);
     const result = await env.DB.prepare(
-      `UPDATE legacy_records SET is_deleted = 'TRUE', deleted_at = ?, deleted_by = ?
-       WHERE backend_id = ?`
+      `DELETE FROM legacy_records WHERE backend_id = ?`
     )
-      .bind(new Date().toISOString(), currentUserName(session), backendId)
+      .bind(backendId)
       .run();
     if (!result.success) throw new Error('delete failed');
-    return jsonResponse({ success: true, message: 'ย้ายรายการไปยังข้อมูลที่ลบแล้ว' }, 200, env);
+    return jsonResponse({ success: true, message: 'ลบรายการเรียบร้อยแล้ว' }, 200, env);
   } catch (err) {
     return jsonResponse(
       {
