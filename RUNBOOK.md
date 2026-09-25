@@ -13,7 +13,7 @@
 | Migration scripts | ✅ เขียนแล้ว รอ credentials | `migration/` (COPY ONLY, resumable) |
 | PDF (pdf-lib+Sarabun) | ✅ สร้างได้ + ฝัง Sarabun ยืนยันแล้ว | เทียบ visual parity กับ GAS ต้องทำใน staging (ขั้นที่ 3) |
 | Regression suite (เฟส 7) | ✅ อัตโนมัติ 54/53 กรณี | `cd worker && npm run test:regression` |
-| Drift guard (freeze Code/) | ✅ `tools/check-drift.mjs` ผูกกับ deploy | hard-fail 2 คู่ + soft-warn Code.gs/style.html |
+| Drift guard (freeze Code/) | 🗑️ ถอดออกแล้ว 2026-09-26 (cutover สำเร็จ ไฟล์ `Code/` ลบแล้ว) | ประวัติอยู่ใน git history (`Code.gs`, `tools/check-drift.mjs` ก่อน commit นี้) |
 | Deploy จริง | ⏳ ต้องมี Cloudflare account resources | ดูขั้นที่ 1 ด้านล่าง |
 
 ## บันทึกการตัดสินใจ (grilling session — อนุมัติแล้ว)
@@ -127,6 +127,6 @@ function doGet(e) {
 | สถานการณ์ | วิธี |
 |---|---|
 | ก่อน cutover (ยังใช้ GAS เป็นหลัก) | ไม่ต้องทำอะไร — ต้นฉบับไม่เคยถูกแตะ (COPY ONLY) |
-| หลัง cutover ต้องการกลับ | ลบบล็อก redirect ใน `doGet` → deploy GAS ใหม่ (clasp push) — QR/ลิงก์เดิมกลับมาทำงานทันที; ข้อมูลที่กรอกหลัง cutover อยู่ใน D1 → export กลับด้วย `migration/verify.mjs` pattern (reverse sync — แจ้งเพื่อให้ผมเขียนเพิ่ม) |
+| หลัง cutover ต้องการกลับ | ลบบล็อก redirect ใน `doGet` → deploy GAS ใหม่ (clasp push) — QR/ลิงก์เดิมกลับมาทำงานทันที; ข้อมูลที่กรอกหลัง cutover อยู่ใน D1 → export กลับด้วย `migration/verify.mjs` pattern (reverse sync — แจ้งเพื่อให้ผมเขียนเพิ่ม) — **หมายเหตุ 2026-09-26:** โฟลเดอร์ `Code/` ถูกลบจาก repo แล้ว (cutover สำเร็จ) — ต้องกลับมาใช้ให้ recover จาก git history ก่อน commit นี้ |
 | PDF parity ไม่ผ่านหลัง deploy | ตั้ง `PDF_NATIVE=""` + `GAS_WEB_APP_URL=<GAS URL>` → `/api/export/pdf` proxy กลับ GAS ทันที |
 | ข้อมูลต้นฉบับ | Google Sheets/Drive ไม่ถูกแก้/ลบเลยตลอดกระบวนการ |

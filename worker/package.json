@@ -4,9 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "check-drift": "node ../tools/check-drift.mjs",
-    "deploy:staging": "npm run check-drift && wrangler deploy --env staging",
-    "deploy:production": "npm run check-drift && wrangler deploy --config wrangler.new-account.toml",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --config wrangler.new-account.toml",
     "db:migrate:local": "wrangler d1 migrations apply lampang-pround --local",
     "db:migrate:staging": "wrangler d1 migrations apply lampang-pround --env staging --remote",
     "db:migrate:production": "wrangler d1 migrations apply lampang-pround --config wrangler.new-account.toml --remote",
