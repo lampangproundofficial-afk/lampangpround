@@ -1,0 +1,31 @@
+# New Cloudflare account. Keep the existing production config for rollback.
+name = "lampang-pround"
+account_id = "7eb96d17bcb9cd953786bb5764d67636"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+rules = [
+  { type = "Data", globs = ["**/*.ttf"] }
+]
+
+[vars]
+APP_NAME = "ระบบฐานข้อมูล Lampang Pround"
+ORG_NAME = "สำนักงานพัฒนาชุมชน"
+SESSION_TTL_SECONDS = "21600"
+GUEST_ACCESS_TTL_SECONDS = "21600"
+GAS_WEB_APP_URL = ""
+GAS_DRIVE_ADAPTER_URL = "https://script.google.com/macros/s/AKfycbys1LicnHuIBGIt2XC1rbvaCaEyvIs62bm3ujBlYHrwJUyUYDh9FOCqiaqhkMaIg_Lm/exec"
+PDF_NATIVE = "on"
+DEV_ALLOWED_ORIGIN = ""
+MIGRATION_READ_ONLY = "off"
+
+[assets]
+directory = "../frontend/dist"
+binding = "STATIC"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lampang-pround"
+database_id = "325d8ad6-6d11-4c9b-81db-c40f07112e6d"

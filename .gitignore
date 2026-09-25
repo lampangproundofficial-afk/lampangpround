@@ -39,3 +39,9 @@ Code/.ignore
 .playwright-cli/
 /verification_dashboard.png
 /*Lampangpround/
+
+# prod data dumps (มีข้อมูลผู้ใช้จริง ห้าม commit)
+/backups/
+
+# local wrangler state ที่เก็บชื่ออื่นช่วง migration
+worker/.wrangler-four-fixes/

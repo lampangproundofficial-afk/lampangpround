@@ -34,7 +34,9 @@ export async function getSession(env: Env, token: string): Promise<Session | nul
     .first<{ username: string; name: string; role: string; expires_at: number }>();
   if (!row) return null;
   if (row.expires_at <= Date.now()) {
-    await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+    if (env.MIGRATION_READ_ONLY !== 'on') {
+      await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+    }
     return null;
   }
   const session: Session = { username: row.username, name: row.name, role: row.role };

@@ -1,0 +1,10 @@
+# Deploy to the old Cloudflare account only during the scheduled cutover.
+# The safe default blocks requests until D1 parity and the new URL are verified.
+name = "lampang-pround"
+main = "src/legacy-bridge.ts"
+account_id = "17abb4914aa1cbfcf03edddedbaea672"
+compatibility_date = "2026-08-01"
+
+[vars]
+bridgeMode = "maintenance"
+targetOrigin = ""

@@ -14,6 +14,8 @@ export interface Env {
   GAS_DRIVE_ADAPTER_URL: string;
   /** Secret shared with the Apps Script Drive adapter. */
   GAS_DRIVE_ADAPTER_TOKEN?: string;
+  /** Enable during a D1 account transfer to reject business-data writes. */
+  MIGRATION_READ_ONLY?: string;
   /** 'on' = ใช้ pdf-lib ใน Worker (หลังผ่านการเทียบ parity ใน staging เท่านั้น) */
   PDF_NATIVE: string;
   /** Origin ของ Vite dev server — production ปล่อยว่าง */
