@@ -4160,7 +4160,7 @@
   function buildDashboardSummary(item) {
     var stats = [
       { icon: 'layers', label: 'ระดับธุรกิจ', value: normalizeBusinessLevelLabel(item.BusinessLevel), bg: '#faf5ff', color: '#7c3aed' },
-      { icon: 'activity', label: 'สถานะ', value: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : 'เริ่มต้น Startup'), bg: '#ecfdf5', color: '#059669' },
+      { icon: 'activity', label: 'สถานะ', value: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : 'ไม่ระบุ'), bg: '#ecfdf5', color: '#059669' },
       { icon: 'star', label: 'ศักยภาพ', value: item.PotentialLevel, bg: '#fffbeb', color: '#d97706' }
     ];
     var statsHtml = stats.map(function(s) {
@@ -4188,7 +4188,7 @@
 
   function buildSummaryPills(item) {
     return [
-      { label: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : '') || 'เริ่มต้น Startup', tone: 'detail-pill-emerald', icon: 'badge-check' },
+      { label: (item.BusinessStatus ? normalizeBusinessStatusLabel(item.BusinessStatus) : '') || 'ไม่ระบุ', tone: 'detail-pill-emerald', icon: 'badge-check' },
       { label: normalizeBusinessLevelLabel(item.BusinessLevel), tone: 'detail-pill-violet', icon: 'sparkles' },
       { label: item.PotentialLevel ? `${item.PotentialLevel} ดาว` : 'ยังไม่ประเมิน', tone: 'detail-pill-amber', icon: 'star' }
     ].map(({ label, tone, icon }) => `
@@ -4900,7 +4900,7 @@
 
   function normalizeBusinessStatusLabel(val) {
     var raw = formatDetailValue(val);
-    if (!raw || raw === '-' || raw === 'ไม่ระบุ') return 'เริ่มต้น Startup';
+    if (!raw || raw === '-' || raw === 'ไม่ระบุ') return 'ไม่ระบุ';
     var lower = String(raw).trim().toLowerCase();
     if (lower.indexOf('มั่นคง') !== -1 || lower.indexOf('stable') !== -1) return 'มั่นคง Stable';
     if (lower.indexOf('กำลังพัฒนา') !== -1 || lower.indexOf('growth') !== -1) return 'กำลังพัฒนา Growth';
@@ -4910,7 +4910,7 @@
 
   function normalizeBusinessLevelLabel(val) {
     var raw = formatDetailValue(val);
-    if (!raw || raw === '-' || raw === 'ไม่ระบุ') return 'Micro SME';
+    if (!raw || raw === '-' || raw === 'ไม่ระบุ') return 'ไม่ระบุ';
     var trimmed = String(raw).trim();
     var lower = trimmed.toLowerCase();
     if (lower === 'micro sme' || lower === 'micro' || lower === 'microsme') return 'Micro SME';
@@ -4934,7 +4934,7 @@
     records.forEach(function(item) {
       var raw = (item.BusinessLevel || '').toString().trim();
       if (!raw || raw === '-' || raw === 'ไม่ระบุ') {
-        counts['Micro SME'] = (counts['Micro SME'] || 0) + 1;
+        counts['ไม่ระบุ'] = (counts['ไม่ระบุ'] || 0) + 1;
       } else if (raw === 'Micro SME' || raw.toLowerCase() === 'micro' || raw.toLowerCase() === 'microsme') {
         counts['Micro SME'] = (counts['Micro SME'] || 0) + 1;
       } else if (raw === 'Small SME' || raw === 'S' || raw.toLowerCase() === 'small') {
@@ -4966,6 +4966,11 @@
     'ของใช้ ของตกแต่ง และของที่ระลึก'
   ];
 
+  var PRODUCT_CATEGORY_DISPLAY = {
+    'สมุนไพรที่ไม่ใช่อาหาร': 'สมุนไพร',
+    'ของใช้ ของตกแต่ง และของที่ระลึก': 'ของใช้/ของตกแต่ง'
+  };
+
   function countByProductCategory(records) {
     var counts = {};
     STANDARD_PRODUCT_CATEGORIES.forEach(function(cat) {
@@ -4978,10 +4983,17 @@
         var norm = normalizeProductCategory(v);
         if (counts.hasOwnProperty(norm)) {
           counts[norm] = (counts[norm] || 0) + 1;
+        } else {
+          counts['อื่นๆ'] = (counts['อื่นๆ'] || 0) + 1;
         }
       });
     });
-    return counts;
+    var result = {};
+    STANDARD_PRODUCT_CATEGORIES.forEach(function(cat) {
+      result[PRODUCT_CATEGORY_DISPLAY[cat] || cat] = counts[cat];
+    });
+    if (counts['อื่นๆ']) result['อื่นๆ'] = counts['อื่นๆ'];
+    return result;
   }
 
   function countByMultiField(records, field) {
@@ -5006,7 +5018,7 @@
       type: 'doughnut',
       data: {
         labels: labels,
-        datasets: [{ data: values, backgroundColor: DASH_COLORS.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }]
+        datasets: [{ data: values, backgroundColor: labels.map(function(lbl, i) { return lbl === 'ไม่ระบุ' ? '#9ca3af' : DASH_COLORS[i % DASH_COLORS.length]; }), borderWidth: 2, borderColor: '#fff' }]
       },
       options: {
         responsive: true,
@@ -5101,7 +5113,7 @@
         labels: formattedLabels,
         datasets: [{
           data: values,
-          backgroundColor: DASH_COLORS.slice(0, rawLabels.length),
+          backgroundColor: rawLabels.map(function(lbl, i) { return lbl === 'ไม่ระบุ' ? '#9ca3af' : DASH_COLORS[i % DASH_COLORS.length]; }),
           borderRadius: 6,
           borderSkipped: false,
           maxBarThickness: isMobile ? 32 : 48
@@ -5217,9 +5229,12 @@
     var kpiTypes = document.getElementById('kpi-types');
     var kpiLevels = document.getElementById('kpi-levels');
     var kpiStatuses = document.getElementById('kpi-statuses');
-    if (kpiTypes) kpiTypes.textContent = Object.keys(typeCounts).length;
-    if (kpiLevels) kpiLevels.textContent = Object.keys(levelCounts).length;
-    if (kpiStatuses) kpiStatuses.textContent = Object.keys(statusCounts).length;
+    var countRealCategories = function(counts) {
+      return Object.keys(counts).filter(function(k) { return k !== 'ไม่ระบุ'; }).length;
+    };
+    if (kpiTypes) kpiTypes.textContent = countRealCategories(typeCounts);
+    if (kpiLevels) kpiLevels.textContent = countRealCategories(levelCounts);
+    if (kpiStatuses) kpiStatuses.textContent = countRealCategories(statusCounts);
 
     _dashCharts.bizType = createDoughnutChart('chart-biz-type', typeCounts);
     _dashCharts.bizStatus = createBarChart('chart-biz-status', statusCounts);
