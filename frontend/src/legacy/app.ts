@@ -5215,6 +5215,9 @@
     if (errorArea) errorArea.classList.add('hidden');
     if (emptyArea) emptyArea.classList.add('hidden');
 
+    var quickFillWrap = document.getElementById('quickfill-open-wrap');
+    if (quickFillWrap) quickFillWrap.classList.toggle('hidden', String(_session && _session.role || '').trim().toLowerCase() !== 'admin');
+
     Object.keys(_dashCharts).forEach(function(k) {
       if (_dashCharts[k]) { _dashCharts[k].destroy(); _dashCharts[k] = null; }
     });
@@ -5244,6 +5247,156 @@
     _dashCharts.productCat = createBarChart('chart-product-cat', catCounts);
 
     if (window.lucide) lucide.createIcons();
+  }
+
+  // ---- Quick-fill: กรอกสถานะธุรกิจ/ขนาดวิสาหกิจ ที่ยังขาด (admin เท่านั้น) ----
+  var _quickFillQueue = [];
+  var _quickFillIndex = 0;
+  var _quickFillBusy = false;
+
+  function quickFillSetBusy(busy) {
+    _quickFillBusy = busy;
+    var saveBtn = document.getElementById('quickfill-save-btn');
+    var skipBtn = document.getElementById('quickfill-skip-btn');
+    if (saveBtn) saveBtn.disabled = busy;
+    if (skipBtn) skipBtn.disabled = busy;
+    var st = document.getElementById('quickfill-save-text');
+    var sp = document.getElementById('quickfill-spinner');
+    if (st) st.textContent = 'บันทึก และร้านถัดไป';
+    if (sp) sp.classList.toggle('hidden', !busy);
+  }
+
+  function quickFillShowError(message) {
+    var box = document.getElementById('quickfill-error');
+    var text = document.getElementById('quickfill-error-text');
+    if (!box) return;
+    if (message) {
+      if (text) text.textContent = message;
+      box.classList.remove('hidden');
+    } else {
+      box.classList.add('hidden');
+    }
+  }
+
+  function quickFillShow(idx) {
+    if (idx >= _quickFillQueue.length) {
+      var card = document.getElementById('quickfill-card');
+      if (card) card.classList.add('hidden');
+      ['quickfill-status', 'quickfill-level', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      var progress = document.getElementById('quickfill-progress');
+      if (progress) progress.textContent = '✅ กรอกครบทุกร้านในคิวแล้ว ปิดหน้าต่างนี้ได้เลย';
+      quickFillSetBusy(false);
+      return;
+    }
+    var item = _quickFillQueue[idx];
+    var name = document.getElementById('quickfill-name');
+    var rid = document.getElementById('quickfill-id');
+    var status = document.getElementById('quickfill-status');
+    var level = document.getElementById('quickfill-level');
+    var progress = document.getElementById('quickfill-progress');
+    if (name) name.textContent = item.BusinessName || '(ไม่มีชื่อร้าน)';
+    if (rid) rid.textContent = (item.LamproundID || item.BackendId || '') + ' · ตำแหน่งในคิว ' + (idx + 1) + '/' + _quickFillQueue.length;
+    if (status) status.value = String(item.BusinessStatus ?? '').trim();
+    if (level) level.value = String(item.BusinessLevel ?? '').trim();
+    if (progress) progress.textContent = 'เหลืออีก ' + (_quickFillQueue.length - idx) + ' ร้านที่ขาดสถานะ/ขนาด';
+    quickFillShowError('');
+    quickFillSetBusy(false);
+  }
+
+  function openQuickFillModal() {
+    if (String(_session && _session.role || '').trim().toLowerCase() !== 'admin') {
+      showToast('โหมดกรอกด่วนเฉพาะผู้ดูแลระบบ', 'error');
+      return;
+    }
+    _quickFillQueue = (recordsData || []).filter(function(item) {
+      if (!item || String(item.IsDeleted ?? '').trim().toUpperCase() === 'TRUE') return false;
+      return !String(item.BusinessStatus ?? '').trim() || !String(item.BusinessLevel ?? '').trim();
+    });
+    _quickFillIndex = 0;
+    if (_quickFillQueue.length === 0) {
+      showToast('ข้อมูลสถานะ/ขนาดวิสาหกิจครบทุกร้านแล้ว', 'success');
+      return;
+    }
+    var card = document.getElementById('quickfill-card');
+    if (card) card.classList.remove('hidden');
+    ['quickfill-status', 'quickfill-level', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    });
+    var modal = document.getElementById('modal-quickfill');
+    var content = document.getElementById('modal-quickfill-content');
+    if (!modal || !content) return;
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    content.classList.remove('scale-95');
+    document.body.style.overflow = 'hidden';
+    quickFillShow(0);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeQuickFillModal() {
+    var modal = document.getElementById('modal-quickfill');
+    var content = document.getElementById('modal-quickfill-content');
+    if (!modal || !content) return;
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    content.classList.add('scale-95');
+    document.body.style.overflow = '';
+    var dashSec = document.getElementById('section-dashboard');
+    if (dashSec && !dashSec.classList.contains('hidden')) renderDashboard();
+  }
+
+  function handleQuickFillBackdropClick(event) {
+    if (event && event.target && event.target.id === 'modal-quickfill') closeQuickFillModal();
+  }
+
+  function skipQuickFill() {
+    if (_quickFillBusy) return;
+    _quickFillIndex++;
+    quickFillShow(_quickFillIndex);
+  }
+
+  function saveQuickFill() {
+    if (_quickFillBusy) return;
+    var item = _quickFillQueue[_quickFillIndex];
+    if (!item) return;
+    var statusEl = document.getElementById('quickfill-status');
+    var levelEl = document.getElementById('quickfill-level');
+    var status = statusEl ? String(statusEl.value || '').trim() : '';
+    var level = levelEl ? String(levelEl.value || '').trim() : '';
+    if (!status && !level) {
+      quickFillShowError('เลือกอย่างน้อย 1 ช่อง หรือกด "ข้าม" ไปร้านถัดไป');
+      return;
+    }
+    var data = {};
+    if (status) data.business_status = status;
+    if (level) data.business_level = level;
+    quickFillSetBusy(true);
+    quickFillShowError('');
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res || res.success === false) {
+          quickFillSetBusy(false);
+          quickFillShowError((res && res.message) || 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
+          return;
+        }
+        if (status) item.BusinessStatus = status;
+        if (level) item.BusinessLevel = level;
+        try { lpClientCacheWriteRecords(recordsData); } catch (e) { }
+        showToast('บันทึก ' + (item.BusinessName || '') + ' แล้ว', 'success');
+        _quickFillIndex++;
+        quickFillShow(_quickFillIndex);
+      })
+      .withFailureHandler(function() {
+        quickFillSetBusy(false);
+        quickFillShowError('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
+      })
+      .updateRecord(Object.assign({
+        backendId: item.BackendId,
+        data: data,
+        token: _token
+      }, buildGuestScopedPayload(item.BackendId)));
   }
 
   window.renderDashboard = renderDashboard;
@@ -6218,6 +6371,11 @@
 
   window.openEditModal = openEditModal;
   window.closeEditModal = closeEditModal;
+  window.openQuickFillModal = openQuickFillModal;
+  window.closeQuickFillModal = closeQuickFillModal;
+  window.handleQuickFillBackdropClick = handleQuickFillBackdropClick;
+  window.saveQuickFill = saveQuickFill;
+  window.skipQuickFill = skipQuickFill;
   window.toggleEditProductListExpand = toggleEditProductListExpand;
   window.loadMoreEditProducts = loadMoreEditProducts;
   window.handleEditBackdropClick = handleEditBackdropClick;

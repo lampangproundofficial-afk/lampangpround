@@ -6,6 +6,8 @@
  * ครอบคลุม: legacy_records, products, shop_gallery, id_counters
  * หลักการ:
  *  - INSERT OR REPLACE ตาม PK — แถวใน D1 ที่ไม่มีในชีต (เช่น record ที่สร้างผ่านแอป) ไม่ถูกแตะ
+ *  - legacy_records: fill-blanks-only — ช่องที่ D1 มีค่าอยู่แล้ว (กรอกผ่านเว็บ) ไม่ถูก sync ทับ, ว่าง → เติมจากชีต
+ *    (ponytail: products/shop_gallery ยัง REPLACE ชีตชนะ — ถ้าเริ่มแก้สินค้าผ่านเว็บเยอะ ให้ยก merge เดียวกันไปใช้)
  *  - created_by: ชีตไม่ระบุ → คงค่าเดิมใน D1 ไว้ (ป้องกันพัง ownership), ไม่มีเดิม → 'Guest'
  *  - deleted_at/deleted_by เขียนเฉพาะแถว is_deleted = TRUE
  *  - GalleryID ซ้ำ: occurrence สุดท้ายคง PK เดิม, ตัวก่อนหน้าได้ GAL-IMPORT-<id>-<n> (เดียวกับ migrate.mjs)
@@ -80,50 +82,107 @@ for (const row of runWranglerJson(`SELECT backend_id, created_by FROM legacy_rec
 }
 console.log(`prod legacy_records เดิม: ${existingCreators.size} แถว`);
 
+// ค่าเดิมทั้งแถวเพื่อ fill-blanks-only: ช่องที่ D1 มีค่าอยู่แล้ว (เช่น กรอกผ่านเว็บ) ไม่ถูก sync ทับ
+const existingRows = new Map();
+for (const row of runWranglerJson(`SELECT * FROM legacy_records`)) {
+  existingRows.set(String(row.backend_id), row);
+}
+
+// คอลัมน์ DB ↔ ฟิลด์ชีต ที่ใช้หลัก fill-blanks-only (D1 มีค่าแล้วชนะเสมอ)
+const FILLABLE = [
+  ['business_name', 'BusinessName'],
+  ['owner_name', 'OwnerName'],
+  ['phone', 'Phone'],
+  ['line_id', 'LineID'],
+  ['facebook', 'Facebook'],
+  ['website', 'Website'],
+  ['location_text', 'LocationText'],
+  ['latitude', 'Latitude'],
+  ['longitude', 'Longitude'],
+  ['business_type', 'BusinessType'],
+  ['product_category', 'ProductCategory'],
+  ['business_level', 'BusinessLevel'],
+  ['main_products', 'MainProducts'],
+  ['production_capacity', 'ProductionCapacity'],
+  ['sales_channel', 'SalesChannel'],
+  ['avg_price', 'AvgPrice'],
+  ['business_status', 'BusinessStatus'],
+  ['potential_level', 'PotentialLevel'],
+  ['issues', 'Issues'],
+  ['support_needed', 'SupportNeeded'],
+  ['image_shop_ref', 'ImageShop'],
+  ['image_product_ref', 'ImageProduct'],
+  ['image_activity_ref', 'ImageActivity'],
+  ['note', 'Note'],
+  ['shop_history', 'ShopHistory'],
+];
+
 // ---- legacy_records ----
 const legacyStatements = [];
 let legacyUpdatedOwner = 0;
+let legacySkippedResurrect = 0;
+let legacyBlanksFilled = 0;
 for (const row of legacy.records) {
   const backendId = String(row.BackendId ?? '').trim();
   if (!backendId) continue;
   const deleted = isTrue(row.IsDeleted);
+  const existing = existingRows.get(backendId);
+  // แถวถูกลบในชีตแต่ไม่มีใน D1 (เคย hard delete ผ่านแอป) — ไม่กู้คืนกลับเข้าระบบ
+  if (deleted && !existing) {
+    legacySkippedResurrect++;
+    continue;
+  }
   const sheetCreator = String(row.CreatedBy ?? '').trim();
   const existingCreator = existingCreators.get(backendId) ?? '';
   if (!sheetCreator && existingCreator) legacyUpdatedOwner++;
   const createdBy = sheetCreator || existingCreator || 'Guest';
+
+  // fill-blanks-only: ช่องไหน D1 มีค่าอยู่แล้ว → คงค่า D1; ว่าง → เติมจากชีต
+  const merged = FILLABLE.map(([col, field]) => {
+    const current = String(existing?.[col] ?? '').trim();
+    if (current) return current;
+    legacyBlanksFilled++;
+    return String(row[field] ?? '');
+  });
+  // ตัวตน/เวลาสร้าง: คงค่าเดิมถ้ามี
+  const lamproundId = String(existing?.lampround_id ?? '').trim() || String(row.LamproundID ?? '').trim() || null;
+  const createdAt = String(existing?.created_at ?? '').trim() || toIso(row.CreatedAt) || new Date().toISOString();
+  // is_deleted แบบ monotonic: ลบแล้วไม่กลับมา ไม่ว่าชีตจะเปลี่ยนกลับ FALSE
+  const finalDeleted = (String(existing?.is_deleted ?? '').trim().toUpperCase() === 'TRUE') || deleted;
+
   const cols = [
     backendId,
-    String(row.LamproundID ?? '').trim() || null,
-    String(row.BusinessName ?? ''),
-    String(row.OwnerName ?? ''),
-    String(row.Phone ?? ''),
-    String(row.LineID ?? ''),
-    String(row.Facebook ?? ''),
-    String(row.Website ?? ''),
-    String(row.LocationText ?? ''),
-    String(row.Latitude ?? ''),
-    String(row.Longitude ?? ''),
-    String(row.BusinessType ?? ''),
-    String(row.ProductCategory ?? ''),
-    String(row.BusinessLevel ?? ''),
-    String(row.MainProducts ?? ''),
-    String(row.ProductionCapacity ?? ''),
-    String(row.SalesChannel ?? ''),
-    String(row.AvgPrice ?? ''),
-    String(row.BusinessStatus ?? ''),
-    String(row.PotentialLevel ?? ''),
-    String(row.Issues ?? ''),
-    String(row.SupportNeeded ?? ''),
-    String(row.ImageShop ?? ''),
-    String(row.ImageProduct ?? ''),
-    String(row.ImageActivity ?? ''),
-    String(row.Note ?? ''),
-    String(row.ShopHistory ?? ''),
-    toIso(row.CreatedAt) || new Date().toISOString(),
+    lamproundId,
+    merged[0],
+    merged[1],
+    merged[2],
+    merged[3],
+    merged[4],
+    merged[5],
+    merged[6],
+    merged[7],
+    merged[8],
+    merged[9],
+    merged[10],
+    merged[11],
+    merged[12],
+    merged[13],
+    merged[14],
+    merged[15],
+    merged[16],
+    merged[17],
+    merged[18],
+    merged[19],
+    merged[20],
+    merged[21],
+    merged[22],
+    merged[23],
+    merged[24],
+    createdAt,
     createdBy,
-    normBool(row.IsDeleted),
-    deleted ? (toIso(row.DeletedAt) || null) : null,
-    deleted ? (String(row.DeletedBy ?? '').trim() || null) : null,
+    normBool(finalDeleted),
+    finalDeleted ? (toIso(row.DeletedAt) || null) : null,
+    finalDeleted ? (String(row.DeletedBy ?? '').trim() || null) : null,
   ];
   legacyStatements.push(
     `INSERT OR REPLACE INTO legacy_records (
@@ -224,7 +283,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const sqlPath = path.join(outDir, `sync-${new Date().toISOString().replace(/[:.]/g, '-')}.sql`);
 fs.writeFileSync(sqlPath, statements.join('\n') + '\n');
 console.log(`SQL: ${sqlPath} (${statements.length} statements, ${(fs.statSync(sqlPath).size / 1024).toFixed(0)} KB)`);
-console.log(`legacy_records: ${legacyStatements.length} (คง created_by เดิม ${legacyUpdatedOwner} แถว)`);
+console.log(`legacy_records: ${legacyStatements.length} (คง created_by เดิม ${legacyUpdatedOwner} แถว, เติมช่องว่าง ${legacyBlanksFilled} ช่อง, ข้ามแถวลบ-ไม่กู้คืน ${legacySkippedResurrect} แถว)`);
 console.log(`products: ${productStatements.length}`);
 console.log(`shop_gallery: ${galleryStatements.length} (GalleryID ซ้ำ ${galleryRecords.length - idCounts.size} แถว → GAL-IMPORT-*)`);
 

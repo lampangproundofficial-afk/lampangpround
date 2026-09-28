@@ -786,6 +786,12 @@
       </div>
 
       <div id="dash-charts-area">
+        <div id="quickfill-open-wrap" class="hidden flex justify-end mb-3">
+          <button type="button" onclick="openQuickFillModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors shadow-sm">
+            <i data-lucide="list-checks" class="w-4 h-4"></i>
+            กรอกด่วน: สถานะ/ขนาดที่ยังขาด
+          </button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div class="dash-chart-card">
             <div class="dash-chart-header"><i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-500"></i><span>สถานะธุรกิจ</span></div>
@@ -855,6 +861,54 @@
         <button onclick="confirmDelete()" id="btn-confirm-delete" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:text-slate-100 disabled:shadow-none disabled:cursor-not-allowed">
           <span id="delete-text">ลบข้อมูล</span>
           <svg id="delete-spinner" class="animate-spin h-5 w-5 text-white mx-auto hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick-fill Modal (กรอกด่วน สถานะธุรกิจ/ขนาดวิสาหกิจ ที่ยังขาด) -->
+  <div id="modal-quickfill" onclick="handleQuickFillBackdropClick(event)" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-[3px]">
+    <div id="modal-quickfill-content" class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 transform scale-95 transition-all duration-300">
+      <div class="flex items-start justify-between gap-3 mb-1">
+        <h3 class="text-lg font-bold text-slate-800">กรอกด่วน: สถานะ &amp; ขนาดวิสาหกิจ</h3>
+        <button type="button" onclick="closeQuickFillModal()" aria-label="ปิด" class="shrink-0 p-2 rounded-xl text-slate-400 hover:bg-slate-100 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p id="quickfill-progress" class="text-sm text-slate-500 mb-4"></p>
+      <div id="quickfill-card" class="rounded-xl border border-slate-200 bg-slate-50/80 p-4 mb-4">
+        <div id="quickfill-name" class="font-bold text-slate-800"></div>
+        <div id="quickfill-id" class="text-xs text-slate-500 mt-0.5"></div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block mb-2 text-sm font-semibold text-slate-700">สถานะธุรกิจ <span class="text-red-500">*</span></label>
+          <select id="quickfill-status" class="form-input w-full">
+            <option value="">— ยังไม่เลือก —</option>
+            <option value="มั่นคง Stable">มั่นคง Stable</option>
+            <option value="กำลังพัฒนา Growth">กำลังพัฒนา Growth</option>
+            <option value="เริ่มต้น Startup">เริ่มต้น Startup</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2 text-sm font-semibold text-slate-700">ขนาดวิสาหกิจ</label>
+          <select id="quickfill-level" class="form-input w-full">
+            <option value="">— ยังไม่เลือก —</option>
+            <option value="Micro SME">Micro SME</option>
+            <option value="Small SME">Small SME</option>
+            <option value="Medium SME">Medium SME</option>
+            <option value="วิสาหกิจชุมชน">วิสาหกิจชุมชน</option>
+          </select>
+        </div>
+      </div>
+      <div id="quickfill-error" class="hidden mt-3 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">
+        <span id="quickfill-error-text"></span>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button type="button" onclick="skipQuickFill()" id="quickfill-skip-btn" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium transition-colors hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed">ข้าม</button>
+        <button type="button" onclick="saveQuickFill()" id="quickfill-save-btn" class="flex-1 py-3 bg-blue-500 text-white rounded-xl font-medium transition-colors hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed">
+          <span id="quickfill-save-text">บันทึก และร้านถัดไป</span>
+          <svg id="quickfill-spinner" class="animate-spin h-5 w-5 text-white mx-auto hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
         </button>
       </div>
     </div>
