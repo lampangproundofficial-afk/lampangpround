@@ -45,3 +45,7 @@ Code/.ignore
 
 # local wrangler state ที่เก็บชื่ออื่นช่วง migration
 worker/.wrangler-four-fixes/
+
+# migration data dumps (มีข้อมูลส่วนตัว) — ดึงใหม่ได้ด้วย fetch-source-public.mjs
+migration/data/
+migration/data-sync/
