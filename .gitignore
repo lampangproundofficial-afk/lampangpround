@@ -49,3 +49,8 @@ worker/.wrangler-four-fixes/
 # migration data dumps (มีข้อมูลส่วนตัว) — ดึงใหม่ได้ด้วย fetch-source-public.mjs
 migration/data/
 migration/data-sync/
+/.zcode/
+/.grok/
+/.kiro/
+/.windsurf/
+/.adal/
