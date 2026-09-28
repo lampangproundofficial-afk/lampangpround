@@ -895,7 +895,7 @@
     const clearBtn = document.getElementById('clear-' + name);
 
     if (!value) {
-      if (img) { img.src = ''; img.classList.add('hidden'); }
+      if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
       if (placeholder) placeholder.style.display = '';
       if (b64) b64.value = '';
       if (clearBtn) clearBtn.classList.add('hidden');
@@ -1402,7 +1402,7 @@
     var wrap = document.getElementById('product-image-preview-wrap');
     var dropzone = document.getElementById('product-image-dropzone');
     var input = document.getElementById('product-image-input');
-    if (preview) preview.src = '';
+    if (preview) preview.removeAttribute('src');
     if (wrap) wrap.classList.add('hidden');
     if (dropzone) dropzone.classList.remove('hidden');
     if (input) input.value = '';
@@ -1435,7 +1435,7 @@
     var wrap = document.getElementById('edit-product-image-preview-wrap');
     var dropzone = document.getElementById('edit-product-image-dropzone');
     var input = document.getElementById('edit-product-image-input');
-    if (preview) preview.src = '';
+    if (preview) preview.removeAttribute('src');
     if (wrap) wrap.classList.add('hidden');
     if (dropzone) dropzone.classList.remove('hidden');
     if (input) input.value = '';
@@ -2378,7 +2378,7 @@
     var b64 = document.getElementById('b64-' + name);
     var fileInput = document.getElementById('file-' + name);
     var clearBtn = document.getElementById('clear-' + name);
-    if (img) { img.src = ''; img.classList.add('hidden'); }
+    if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
     if (placeholder) placeholder.style.display = '';
     if (b64) b64.value = '';
     if (fileInput) fileInput.value = '';
@@ -4149,7 +4149,7 @@
     if (!lb) return;
     lb.classList.add('opacity-0', 'pointer-events-none');
     document.body.style.overflow = '';
-    setTimeout(function() { if (img) img.src = ''; currentLightboxImages = []; }, 320);
+    setTimeout(function() { if (img) img.removeAttribute('src'); currentLightboxImages = []; }, 320);
   }
 
   window.openLightbox = openLightbox;
@@ -5424,7 +5424,7 @@
           img.src = val; img.classList.remove('hidden'); ph.style.display = 'none';
           b64.value = val; clr.classList.remove('hidden');
         } else {
-          img.src = ''; img.classList.add('hidden'); ph.style.display = '';
+          img.removeAttribute('src'); img.classList.add('hidden'); ph.style.display = '';
           b64.value = ''; clr.classList.add('hidden');
         }
       }
