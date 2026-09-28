@@ -3393,6 +3393,15 @@
     if (!categoryFilter) return true;
     var target = normalizeProductCategory(categoryFilter);
     var raw = item && (item.ProductCategory || item.productCategory);
+    // ต้องตรงกับ countByProductCategory: อื่นๆ = มีหมวดไหนนอก 5 หมวดมาตรฐาน, ไม่ระบุ = ไม่มีหมวดเลย
+    if (categoryFilter === 'อื่นๆ' || categoryFilter === 'ไม่ระบุ') {
+      var items = raw ? extractListItems(raw) : [];
+      if (categoryFilter === 'ไม่ระบุ') return items.length === 0;
+      for (var j = 0; j < items.length; j++) {
+        if (STANDARD_PRODUCT_CATEGORIES.indexOf(normalizeProductCategory(items[j])) === -1) return true;
+      }
+      return false;
+    }
     if (!raw) return false;
     var list = extractListItems(raw);
     if (list && list.length > 0) {
@@ -4979,14 +4988,18 @@
     records.forEach(function(item) {
       var raw = item && (item.ProductCategory || item.productCategory);
       var items = extractListItems(raw);
+      var hasOther = false;
       items.forEach(function(v) {
         var norm = normalizeProductCategory(v);
-        if (counts.hasOwnProperty(norm)) {
+        // เทียบกับรายการมาตรฐานตรง ๆ — ห้ามใช้ counts.hasOwnProperty เพราะ key 'อื่นๆ' ที่ถูกสร้างแล้วจะกลายเป็นหมวดปกติ
+        if (STANDARD_PRODUCT_CATEGORIES.indexOf(norm) !== -1) {
           counts[norm] = (counts[norm] || 0) + 1;
         } else {
-          counts['อื่นๆ'] = (counts['อื่นๆ'] || 0) + 1;
+          hasOther = true;
         }
       });
+      // นับร้านละ 1 ครั้ง (ร้านเดียวมี 2 แท็กนอก 5 หมวด ไม่ควรโดนนับซ้ำ)
+      if (hasOther) counts['อื่นๆ'] = (counts['อื่นๆ'] || 0) + 1;
     });
     var result = {};
     STANDARD_PRODUCT_CATEGORIES.forEach(function(cat) {
