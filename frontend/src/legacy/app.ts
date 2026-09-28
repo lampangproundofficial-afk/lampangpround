@@ -5216,7 +5216,10 @@
     if (emptyArea) emptyArea.classList.add('hidden');
 
     var quickFillWrap = document.getElementById('quickfill-open-wrap');
-    if (quickFillWrap) quickFillWrap.classList.toggle('hidden', String(_session && _session.role || '').trim().toLowerCase() !== 'admin');
+    if (quickFillWrap) {
+      var isAdmin = String(_session && _session.role || '').trim().toLowerCase() === 'admin';
+      quickFillWrap.classList.toggle('hidden', !isAdmin || quickFillMissingCount() === 0);
+    }
 
     Object.keys(_dashCharts).forEach(function(k) {
       if (_dashCharts[k]) { _dashCharts[k].destroy(); _dashCharts[k] = null; }
@@ -5249,10 +5252,17 @@
     if (window.lucide) lucide.createIcons();
   }
 
-  // ---- Quick-fill: กรอกสถานะธุรกิจ/ขนาดวิสาหกิจ ที่ยังขาด (admin เท่านั้น) ----
+  // ---- Quick-fill: กรอกสถานะธุรกิจ/ขนาดวิสาหกิจ/ระดับศักยภาพ ที่ยังขาด (admin เท่านั้น) ----
   var _quickFillQueue = [];
   var _quickFillIndex = 0;
   var _quickFillBusy = false;
+
+  function quickFillMissingCount() {
+    return (recordsData || []).filter(function(item) {
+      if (!item || String(item.IsDeleted ?? '').trim().toUpperCase() === 'TRUE') return false;
+      return !String(item.BusinessStatus ?? '').trim() || !String(item.BusinessLevel ?? '').trim() || !String(item.PotentialLevel ?? '').trim();
+    }).length;
+  }
 
   function quickFillSetBusy(busy) {
     _quickFillBusy = busy;
@@ -5282,7 +5292,7 @@
     if (idx >= _quickFillQueue.length) {
       var card = document.getElementById('quickfill-card');
       if (card) card.classList.add('hidden');
-      ['quickfill-status', 'quickfill-level', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
+      ['quickfill-status', 'quickfill-level', 'quickfill-potential', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.classList.add('hidden');
       });
@@ -5296,12 +5306,14 @@
     var rid = document.getElementById('quickfill-id');
     var status = document.getElementById('quickfill-status');
     var level = document.getElementById('quickfill-level');
+    var potential = document.getElementById('quickfill-potential');
     var progress = document.getElementById('quickfill-progress');
     if (name) name.textContent = item.BusinessName || '(ไม่มีชื่อร้าน)';
     if (rid) rid.textContent = (item.LamproundID || item.BackendId || '') + ' · ตำแหน่งในคิว ' + (idx + 1) + '/' + _quickFillQueue.length;
     if (status) status.value = String(item.BusinessStatus ?? '').trim();
     if (level) level.value = String(item.BusinessLevel ?? '').trim();
-    if (progress) progress.textContent = 'เหลืออีก ' + (_quickFillQueue.length - idx) + ' ร้านที่ขาดสถานะ/ขนาด';
+    if (potential) potential.value = String(item.PotentialLevel ?? '').trim();
+    if (progress) progress.textContent = 'เหลืออีก ' + (_quickFillQueue.length - idx) + ' ร้านที่ขาดข้อมูล';
     quickFillShowError('');
     quickFillSetBusy(false);
   }
@@ -5313,7 +5325,7 @@
     }
     _quickFillQueue = (recordsData || []).filter(function(item) {
       if (!item || String(item.IsDeleted ?? '').trim().toUpperCase() === 'TRUE') return false;
-      return !String(item.BusinessStatus ?? '').trim() || !String(item.BusinessLevel ?? '').trim();
+      return !String(item.BusinessStatus ?? '').trim() || !String(item.BusinessLevel ?? '').trim() || !String(item.PotentialLevel ?? '').trim();
     });
     _quickFillIndex = 0;
     if (_quickFillQueue.length === 0) {
@@ -5322,7 +5334,7 @@
     }
     var card = document.getElementById('quickfill-card');
     if (card) card.classList.remove('hidden');
-    ['quickfill-status', 'quickfill-level', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
+    ['quickfill-status', 'quickfill-level', 'quickfill-potential', 'quickfill-save-btn', 'quickfill-skip-btn'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.classList.remove('hidden');
     });
@@ -5363,15 +5375,18 @@
     if (!item) return;
     var statusEl = document.getElementById('quickfill-status');
     var levelEl = document.getElementById('quickfill-level');
+    var potentialEl = document.getElementById('quickfill-potential');
     var status = statusEl ? String(statusEl.value || '').trim() : '';
     var level = levelEl ? String(levelEl.value || '').trim() : '';
-    if (!status && !level) {
+    var potential = potentialEl ? String(potentialEl.value || '').trim() : '';
+    if (!status && !level && !potential) {
       quickFillShowError('เลือกอย่างน้อย 1 ช่อง หรือกด "ข้าม" ไปร้านถัดไป');
       return;
     }
     var data = {};
     if (status) data.business_status = status;
     if (level) data.business_level = level;
+    if (potential) data.potential_level = potential;
     quickFillSetBusy(true);
     quickFillShowError('');
     google.script.run
@@ -5383,6 +5398,7 @@
         }
         if (status) item.BusinessStatus = status;
         if (level) item.BusinessLevel = level;
+        if (potential) item.PotentialLevel = potential;
         try { lpClientCacheWriteRecords(recordsData); } catch (e) { }
         showToast('บันทึก ' + (item.BusinessName || '') + ' แล้ว', 'success');
         _quickFillIndex++;

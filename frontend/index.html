@@ -789,7 +789,7 @@
         <div id="quickfill-open-wrap" class="hidden flex justify-end mb-3">
           <button type="button" onclick="openQuickFillModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-colors shadow-sm">
             <i data-lucide="list-checks" class="w-4 h-4"></i>
-            กรอกด่วน: สถานะ/ขนาดที่ยังขาด
+            กรอกด่วน: ข้อมูลร้านที่ยังขาด
           </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -870,7 +870,7 @@
   <div id="modal-quickfill" onclick="handleQuickFillBackdropClick(event)" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-[3px]">
     <div id="modal-quickfill-content" class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 transform scale-95 transition-all duration-300">
       <div class="flex items-start justify-between gap-3 mb-1">
-        <h3 class="text-lg font-bold text-slate-800">กรอกด่วน: สถานะ &amp; ขนาดวิสาหกิจ</h3>
+        <h3 class="text-lg font-bold text-slate-800">กรอกด่วน: สถานะ · ขนาด · ศักยภาพ</h3>
         <button type="button" onclick="closeQuickFillModal()" aria-label="ปิด" class="shrink-0 p-2 rounded-xl text-slate-400 hover:bg-slate-100 transition-colors">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
@@ -898,6 +898,17 @@
             <option value="Small SME">Small SME</option>
             <option value="Medium SME">Medium SME</option>
             <option value="วิสาหกิจชุมชน">วิสาหกิจชุมชน</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2 text-sm font-semibold text-slate-700">ระดับศักยภาพ</label>
+          <select id="quickfill-potential" class="form-input w-full">
+            <option value="">— ยังไม่เลือก —</option>
+            <option value="1">1 ดาว</option>
+            <option value="2">2 ดาว</option>
+            <option value="3">3 ดาว</option>
+            <option value="4">4 ดาว</option>
+            <option value="5">5 ดาว</option>
           </select>
         </div>
       </div>
